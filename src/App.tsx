@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type MouseEvent as ReactMouseEvent } from "react";
 import "./App.css";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   isPermissionGranted,
   requestPermission,
@@ -197,9 +198,22 @@ export default function App() {
 
   const compact = settings.compactMode || settings.menuBarMode;
 
+  const startWindowDrag = useCallback((e: ReactMouseEvent<HTMLElement>) => {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.closest("button, input, a, [data-no-drag]")) return;
+    getCurrentWindow()
+      .startDragging()
+      .catch(() => {});
+  }, []);
+
   return (
     <div className={`app ${compact ? "compact" : ""} ${settings.menuBarMode ? "menubar" : ""}`}>
-      <div className="topbar" data-tauri-drag-region>
+      <div
+        className="topbar"
+        data-tauri-drag-region
+        onMouseDown={startWindowDrag}
+      >
         <div className="brand" data-tauri-drag-region>
           <span className="brand-mark" aria-hidden />
           <span className="brand-name">Hyper-Display</span>
