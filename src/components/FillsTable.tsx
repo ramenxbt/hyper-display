@@ -1,11 +1,24 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { fmtPrice, fmtSignedUsd, fmtSize, fmtUsd } from "../lib/format";
 import { CoinFilter, coinCounts } from "./CoinFilter";
 import { csvFilename, downloadCsv, rowsToCsv } from "../lib/csv";
 import type { TaggedUserFill } from "../lib/aggregate";
 import { WalletChip } from "./WalletChip";
+import { useSort } from "../hooks/useSort";
+import { SortableHeader } from "./SortableHeader";
 
 type Props = { fills: TaggedUserFill[]; address: string; aggregate?: boolean };
+
+type SortKey =
+  | "time"
+  | "coin"
+  | "side"
+  | "direction"
+  | "size"
+  | "price"
+  | "notional"
+  | "fee"
+  | "pnl";
 
 const MAX_ROWS = 100;
 
@@ -29,6 +42,39 @@ export function FillsTable({ fills, address, aggregate }: Props) {
     [fills, coin],
   );
 
+  const getValue = useCallback(
+    (f: TaggedUserFill, key: SortKey): number | string | null => {
+      switch (key) {
+        case "time":
+          return f.time;
+        case "coin":
+          return f.coin;
+        case "side":
+          return f.side === "B" ? "buy" : "sell";
+        case "direction":
+          return f.dir;
+        case "size":
+          return parseFloat(f.sz);
+        case "price":
+          return parseFloat(f.px);
+        case "notional":
+          return parseFloat(f.sz) * parseFloat(f.px);
+        case "fee":
+          return parseFloat(f.fee);
+        case "pnl":
+          return parseFloat(f.closedPnl);
+      }
+    },
+    [],
+  );
+
+  const { sorted, sort, onClick } = useSort<TaggedUserFill, SortKey>({
+    rows: filtered,
+    defaultKey: "time",
+    defaultDir: "desc",
+    getValue,
+  });
+
   if (!fills.length) {
     return (
       <div className="empty">
@@ -37,7 +83,7 @@ export function FillsTable({ fills, address, aggregate }: Props) {
       </div>
     );
   }
-  const rows = [...filtered].sort((a, b) => b.time - a.time).slice(0, MAX_ROWS);
+  const rows = sorted.slice(0, MAX_ROWS);
 
   const onExport = () => {
     const csv = rowsToCsv(filtered, [
@@ -71,16 +117,16 @@ export function FillsTable({ fills, address, aggregate }: Props) {
       <table className="table">
         <thead>
           <tr>
-            <th>Time</th>
+            <SortableHeader<SortKey> label="Time" sortKey="time" state={sort} onSort={onClick} />
             {aggregate && <th>Wallet</th>}
-            <th>Coin</th>
-            <th>Side</th>
-            <th>Direction</th>
-            <th>Size</th>
-            <th>Price</th>
-            <th>Notional</th>
-            <th>Fee</th>
-            <th>Closed PnL</th>
+            <SortableHeader<SortKey> label="Coin" sortKey="coin" state={sort} onSort={onClick} />
+            <SortableHeader<SortKey> label="Side" sortKey="side" state={sort} onSort={onClick} />
+            <SortableHeader<SortKey> label="Direction" sortKey="direction" state={sort} onSort={onClick} />
+            <SortableHeader<SortKey> label="Size" sortKey="size" state={sort} onSort={onClick} />
+            <SortableHeader<SortKey> label="Price" sortKey="price" state={sort} onSort={onClick} />
+            <SortableHeader<SortKey> label="Notional" sortKey="notional" state={sort} onSort={onClick} />
+            <SortableHeader<SortKey> label="Fee" sortKey="fee" state={sort} onSort={onClick} />
+            <SortableHeader<SortKey> label="Closed PnL" sortKey="pnl" state={sort} onSort={onClick} />
           </tr>
         </thead>
         <tbody>

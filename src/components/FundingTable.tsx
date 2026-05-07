@@ -1,15 +1,19 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { fmtSignedUsd, fmtSize } from "../lib/format";
 import { CoinFilter, coinCounts } from "./CoinFilter";
 import { csvFilename, downloadCsv, rowsToCsv } from "../lib/csv";
 import type { TaggedFundingEntry } from "../lib/aggregate";
 import { WalletChip } from "./WalletChip";
+import { useSort } from "../hooks/useSort";
+import { SortableHeader } from "./SortableHeader";
 
 type Props = {
   entries: TaggedFundingEntry[];
   address: string;
   aggregate?: boolean;
 };
+
+type SortKey = "time" | "coin" | "side" | "size" | "rate" | "usdc";
 
 const MAX_ROWS = 200;
 
@@ -47,6 +51,33 @@ export function FundingTable({ entries, address, aggregate }: Props) {
     [filtered],
   );
 
+  const getValue = useCallback(
+    (e: TaggedFundingEntry, key: SortKey): number | string | null => {
+      switch (key) {
+        case "time":
+          return e.time;
+        case "coin":
+          return e.delta.coin;
+        case "side":
+          return parseFloat(e.delta.szi) > 0 ? "long" : "short";
+        case "size":
+          return Math.abs(parseFloat(e.delta.szi));
+        case "rate":
+          return parseFloat(e.delta.fundingRate);
+        case "usdc":
+          return parseFloat(e.delta.usdc);
+      }
+    },
+    [],
+  );
+
+  const { sorted, sort, onClick } = useSort<TaggedFundingEntry, SortKey>({
+    rows: filtered,
+    defaultKey: "time",
+    defaultDir: "desc",
+    getValue,
+  });
+
   if (!entries.length) {
     return (
       <div className="empty">
@@ -58,7 +89,7 @@ export function FundingTable({ entries, address, aggregate }: Props) {
     );
   }
 
-  const rows = [...filtered].sort((a, b) => b.time - a.time).slice(0, MAX_ROWS);
+  const rows = sorted.slice(0, MAX_ROWS);
 
   const onExport = () => {
     const csv = rowsToCsv(filtered, [
@@ -98,13 +129,13 @@ export function FundingTable({ entries, address, aggregate }: Props) {
       <table className="table">
         <thead>
           <tr>
-            <th>Time</th>
+            <SortableHeader<SortKey> label="Time" sortKey="time" state={sort} onSort={onClick} />
             {aggregate && <th>Wallet</th>}
-            <th>Coin</th>
-            <th>Side</th>
-            <th>Position Size</th>
-            <th>Rate (1H)</th>
-            <th>Payment</th>
+            <SortableHeader<SortKey> label="Coin" sortKey="coin" state={sort} onSort={onClick} />
+            <SortableHeader<SortKey> label="Side" sortKey="side" state={sort} onSort={onClick} />
+            <SortableHeader<SortKey> label="Position Size" sortKey="size" state={sort} onSort={onClick} />
+            <SortableHeader<SortKey> label="Rate (1H)" sortKey="rate" state={sort} onSort={onClick} />
+            <SortableHeader<SortKey> label="Payment" sortKey="usdc" state={sort} onSort={onClick} />
           </tr>
         </thead>
         <tbody>

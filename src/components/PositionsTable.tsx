@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { AllMids } from "../lib/hl";
 import {
   fmtPrice,
@@ -11,15 +11,38 @@ import { Sparkline } from "./Sparkline";
 import type { CandleSeries } from "../hooks/useMarkCandles";
 import type { TaggedAssetPosition } from "../lib/aggregate";
 import { WalletChip } from "./WalletChip";
+import { useSort } from "../hooks/useSort";
+import { SortableHeader } from "./SortableHeader";
+import type { PositionColumnVisibility } from "../lib/settings";
 
 type Props = {
   positions: TaggedAssetPosition[];
   mids: AllMids;
   candles: CandleSeries;
   aggregate?: boolean;
+  columns: PositionColumnVisibility;
 };
 
-export function PositionsTable({ positions, mids, candles, aggregate }: Props) {
+type SortKey =
+  | "coin"
+  | "side"
+  | "size"
+  | "value"
+  | "entry"
+  | "mark"
+  | "liq"
+  | "margin"
+  | "upnl"
+  | "roe"
+  | "lev";
+
+export function PositionsTable({
+  positions,
+  mids,
+  candles,
+  aggregate,
+  columns,
+}: Props) {
   const maxAbsPnl = useMemo(() => {
     let m = 0;
     for (const ap of positions) {
@@ -29,6 +52,44 @@ export function PositionsTable({ positions, mids, candles, aggregate }: Props) {
     return m;
   }, [positions]);
 
+  const getValue = useCallback(
+    (ap: TaggedAssetPosition, key: SortKey): number | string | null => {
+      const p = ap.position;
+      switch (key) {
+        case "coin":
+          return p.coin;
+        case "side":
+          return parseFloat(p.szi) > 0 ? "long" : "short";
+        case "size":
+          return Math.abs(parseFloat(p.szi));
+        case "value":
+          return parseFloat(p.positionValue);
+        case "entry":
+          return p.entryPx ? parseFloat(p.entryPx) : null;
+        case "mark":
+          return mids[p.coin] ? parseFloat(mids[p.coin]) : null;
+        case "liq":
+          return p.liquidationPx ? parseFloat(p.liquidationPx) : null;
+        case "margin":
+          return parseFloat(p.marginUsed);
+        case "upnl":
+          return parseFloat(p.unrealizedPnl);
+        case "roe":
+          return parseFloat(p.returnOnEquity);
+        case "lev":
+          return p.leverage.value;
+      }
+    },
+    [mids],
+  );
+
+  const { sorted, sort, onClick } = useSort<TaggedAssetPosition, SortKey>({
+    rows: positions,
+    defaultKey: "value",
+    defaultDir: "desc",
+    getValue,
+  });
+
   if (!positions.length) {
     return <Empty />;
   }
@@ -37,22 +98,34 @@ export function PositionsTable({ positions, mids, candles, aggregate }: Props) {
       <thead>
         <tr>
           {aggregate && <th>Wallet</th>}
-          <th>Coin</th>
-          <th>Side</th>
-          <th>Size</th>
-          <th>Position Value</th>
-          <th>Entry</th>
-          <th>Mark</th>
-          <th>24H</th>
-          <th>Liq</th>
-          <th>Margin</th>
-          <th>Unrealized PnL</th>
-          <th>ROE</th>
-          <th>Lev</th>
+          <SortableHeader<SortKey> label="Coin" sortKey="coin" state={sort} onSort={onClick} />
+          <SortableHeader<SortKey> label="Side" sortKey="side" state={sort} onSort={onClick} />
+          <SortableHeader<SortKey> label="Size" sortKey="size" state={sort} onSort={onClick} />
+          <SortableHeader<SortKey> label="Position Value" sortKey="value" state={sort} onSort={onClick} />
+          {columns.entry && (
+            <SortableHeader<SortKey> label="Entry" sortKey="entry" state={sort} onSort={onClick} />
+          )}
+          {columns.mark && (
+            <SortableHeader<SortKey> label="Mark" sortKey="mark" state={sort} onSort={onClick} />
+          )}
+          {columns.spark24h && <th>24H</th>}
+          {columns.liq && (
+            <SortableHeader<SortKey> label="Liq" sortKey="liq" state={sort} onSort={onClick} />
+          )}
+          {columns.margin && (
+            <SortableHeader<SortKey> label="Margin" sortKey="margin" state={sort} onSort={onClick} />
+          )}
+          <SortableHeader<SortKey> label="Unrealized PnL" sortKey="upnl" state={sort} onSort={onClick} />
+          {columns.roe && (
+            <SortableHeader<SortKey> label="ROE" sortKey="roe" state={sort} onSort={onClick} />
+          )}
+          {columns.lev && (
+            <SortableHeader<SortKey> label="Lev" sortKey="lev" state={sort} onSort={onClick} />
+          )}
         </tr>
       </thead>
       <tbody>
-        {positions.map((ap) => {
+        {sorted.map((ap) => {
           const p = ap.position;
           const sz = parseFloat(p.szi);
           const isLong = sz > 0;
@@ -79,23 +152,37 @@ export function PositionsTable({ positions, mids, candles, aggregate }: Props) {
               </td>
               <td className="mono">{fmtSize(Math.abs(sz))}</td>
               <td className="mono">{fmtUsd(p.positionValue)}</td>
-              <td className="mono">{p.entryPx ? fmtPrice(p.entryPx) : "—"}</td>
-              <td className="mono">{mark != null ? fmtPrice(mark) : "—"}</td>
-              <td className="position-spark">
-                <PositionSpark points={candles[p.coin]} />
-              </td>
-              <td className="mono muted">
-                {p.liquidationPx ? fmtPrice(p.liquidationPx) : "—"}
-              </td>
-              <td className="mono">{fmtUsd(p.marginUsed)}</td>
+              {columns.entry && (
+                <td className="mono">{p.entryPx ? fmtPrice(p.entryPx) : "—"}</td>
+              )}
+              {columns.mark && (
+                <td className="mono">{mark != null ? fmtPrice(mark) : "—"}</td>
+              )}
+              {columns.spark24h && (
+                <td className="position-spark">
+                  <PositionSpark points={candles[p.coin]} />
+                </td>
+              )}
+              {columns.liq && (
+                <td className="mono muted">
+                  {p.liquidationPx ? fmtPrice(p.liquidationPx) : "—"}
+                </td>
+              )}
+              {columns.margin && (
+                <td className="mono">{fmtUsd(p.marginUsed)}</td>
+              )}
               <td className={`mono pnl-cell ${upnlClass}`}>
                 <PnlBar value={upnl} share={pnlShare} />
                 <span>{fmtSignedUsd(upnl)}</span>
               </td>
-              <td className={`mono ${roeClass}`}>{fmtSignedPct(roe)}</td>
-              <td className="mono muted">
-                {p.leverage.value}× {p.leverage.type === "isolated" ? "iso" : "x"}
-              </td>
+              {columns.roe && (
+                <td className={`mono ${roeClass}`}>{fmtSignedPct(roe)}</td>
+              )}
+              {columns.lev && (
+                <td className="mono muted">
+                  {p.leverage.value}× {p.leverage.type === "isolated" ? "iso" : "x"}
+                </td>
+              )}
             </tr>
           );
         })}
