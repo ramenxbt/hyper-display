@@ -1,8 +1,15 @@
+export type WebhookFormat = "discord" | "slack" | "generic";
+
 export type Settings = {
   notifyLiqEnabled: boolean;
-  liqThresholdPct: number; // distance from mark to liq, as percent (e.g. 5 = 5%)
-  refreshSeconds: number; // 2..60
+  liqThresholdPct: number; // distance from mark to liq, as percent
+  refreshSeconds: number; // 2..30
   showSecondarySeries: boolean;
+  compactMode: boolean;
+  menuBarMode: boolean;
+  webhookEnabled: boolean;
+  webhookUrl: string;
+  webhookFormat: WebhookFormat;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -10,6 +17,11 @@ export const DEFAULT_SETTINGS: Settings = {
   liqThresholdPct: 5,
   refreshSeconds: 5,
   showSecondarySeries: true,
+  compactMode: false,
+  menuBarMode: false,
+  webhookEnabled: false,
+  webhookUrl: "",
+  webhookFormat: "discord",
 };
 
 const KEY = "hyper-display.settings";
