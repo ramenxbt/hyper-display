@@ -1,0 +1,48 @@
+name: Feature request
+description: Suggest something Hyper-Display should add or change.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tell us the use case before the implementation. We are happy to help shape the design.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      placeholder: |
+        e.g. "I trade two wallets and switching is annoying because..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Optional. A rough sketch is fine.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Where in the app does this live?
+      multiple: true
+      options:
+        - Positions table
+        - Open Orders
+        - Recent Fills
+        - Funding tab
+        - Rates / heatmap
+        - Order book
+        - Spot
+        - Equity strip / sparkline
+        - Wallets menu
+        - Settings panel
+        - Pinned floating window
+        - Menu-bar mode
+        - Command palette
+        - Alerts / webhook
+        - Build / CI
+        - Other
