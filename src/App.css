@@ -379,6 +379,12 @@
 .summary-cell .v.accent {
   color: var(--mint);
 }
+.summary-cell .v.long {
+  color: var(--long);
+}
+.summary-cell .v.short {
+  color: var(--short);
+}
 
 /* EQUITY STRIP */
 .equity {
