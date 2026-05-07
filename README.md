@@ -34,6 +34,10 @@ Use it for:
 - **Sortable headers** on Positions, Open Orders, Recent Fills, and Funding tables (tri-state click cycle).
 - **Configurable Positions columns** in Settings → "Positions columns".
 - **Command palette** (`⌘K`) — fuzzy search over wallets, tabs, coins, theme, and quick actions.
+- **Notes per saved wallet** — free-text annotations rendered under each label in the Wallets menu.
+- **Funding-rate heatmap** — fifth tab listing every Hyperliquid coin's current 1H funding rate as a colour-coded grid (green = shorts pay, red = longs pay), with annualised APR in each tile.
+- **Custom alert rules** — fire native + webhook alerts when total uPnL crosses any threshold you pin.
+- **Pin a position** — click the ⤴ on any Positions row to spawn a small always-on-top floating window of just that coin (size, mark, liq, ROE, 24H sparkline).
 - **Per-coin filter** on Fills and Funding tabs.
 - **Liquidation alerts** — opt-in native desktop notifications when mark price approaches your liquidation price (configurable threshold, throttled per coin).
 - **Menu-bar tray icon** — click to show or hide the main window; right-click for the show / hide / quit menu.
@@ -110,17 +114,18 @@ All data comes from a single public endpoint:
 | `portfolio`            | account-value and PnL history per timeframe |
 | `userFunding`          | hourly funding payments over the lookback   |
 | `candleSnapshot`       | OHLCV candles per coin for inline sparklines |
+| `metaAndAssetCtxs`     | universe-wide funding rates and mark prices  |
 
 See the [Hyperliquid Info API docs](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint).
 
 ## Roadmap
 
-Planned for v0.8:
+Planned for v0.9:
 
-- Notes per saved wallet (free-text annotations stored alongside labels).
-- Custom alert rules (e.g. "ping me when uPnL drops below X").
-- Heatmap of historical funding rates per coin.
-- Optional click-to-pin floating mini-window of a single position.
+- Funding-rate watchlist (subscribe to specific coins, alert on threshold).
+- Order-book depth panel for the active coin.
+- Multiple pinned windows arranged in a saved layout.
+- Optional Hyperliquid spot-tab (read-only spot positions).
 
 ## Privacy
 
