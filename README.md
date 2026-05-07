@@ -92,6 +92,25 @@ The script drops the AppImage into `~/.local/bin` and makes it executable.
 
 > Need a platform that isn't in the latest release yet? See [**Build from source**](#build-from-source). It is a `git clone` + `npm install` + `npm run tauri:build` and takes about three minutes.
 
+## Safe by design
+
+Hyper-Display is a read-only viewer. It is structurally incapable of moving your funds.
+
+- **Never asks for keys.** No private key, no seed phrase, no signing prompt. The codebase has zero EIP-712 / signing code paths.
+- **Never holds funds.** No wallet integration, no contract calls, no transfers. Hyperliquid's trade endpoints are intentionally unused.
+- **No telemetry, no analytics, no auto-update.** Nothing fetches and executes anything in the background.
+- **No backend.** Every network call is from your machine, to either Hyperliquid's public info endpoint, Google Fonts (Inter + JetBrains Mono), or a webhook URL you opt into.
+
+Every outbound request is auditable in two short files: [`src/lib/hl.ts`](src/lib/hl.ts) and [`src/lib/webhook.ts`](src/lib/webhook.ts). Read them in five minutes. Or watch the dev-tools network tab while the app runs and confirm yourself.
+
+Releases also carry a [GitHub artifact attestation](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds): cryptographic proof that the binary you downloaded was built by this repo's CI from a specific commit. Verify with one command:
+
+```bash
+gh attestation verify Hyper-Display_<version>_<arch>.dmg --owner ramenxbt
+```
+
+Full disclosure policy and reporting flow in [`SECURITY.md`](SECURITY.md).
+
 ## First-run walkthrough
 
 1. **Launch the app.** You'll see an empty dashboard and a **Wallet** field at the top.
