@@ -191,6 +191,36 @@ export type MetaAndCtxs = [{ universe: AssetMeta[] }, AssetCtx[]];
 export const fetchMetaAndAssetCtxs = (signal?: AbortSignal) =>
   post<MetaAndCtxs>({ type: "metaAndAssetCtxs" }, signal);
 
+export type BookLevel = {
+  px: string;
+  sz: string;
+  n: number;
+};
+
+export type L2Book = {
+  coin: string;
+  time: number;
+  levels: [BookLevel[], BookLevel[]]; // [bids, asks]
+};
+
+export const fetchL2Book = (coin: string, signal?: AbortSignal) =>
+  post<L2Book>({ type: "l2Book", coin }, signal);
+
+export type SpotBalance = {
+  coin: string;
+  token: number;
+  hold: string;
+  total: string;
+  entryNtl?: string;
+};
+
+export type SpotState = {
+  balances: SpotBalance[];
+};
+
+export const fetchSpotState = (user: string, signal?: AbortSignal) =>
+  post<SpotState>({ type: "spotClearinghouseState", user }, signal);
+
 export function frameByKey(
   history: PortfolioHistory | undefined,
   key: PortfolioFrameKey,
