@@ -74,6 +74,39 @@ export type UserFill = {
 
 export type AllMids = Record<string, string>;
 
+export type PortfolioFrameKey =
+  | "day"
+  | "week"
+  | "month"
+  | "allTime"
+  | "perpDay"
+  | "perpWeek"
+  | "perpMonth"
+  | "perpAllTime";
+
+export type PortfolioFrame = {
+  accountValueHistory: [number, string][];
+  pnlHistory: [number, string][];
+  vlm: string;
+};
+
+export type PortfolioHistory = [PortfolioFrameKey, PortfolioFrame][];
+
+export type FundingDelta = {
+  type: "funding";
+  coin: string;
+  usdc: string;
+  szi: string;
+  fundingRate: string;
+  nSamples?: number;
+};
+
+export type FundingEntry = {
+  time: number;
+  hash: string;
+  delta: FundingDelta;
+};
+
 async function post<T>(body: unknown, signal?: AbortSignal): Promise<T> {
   const res = await fetch(HL_INFO_URL, {
     method: "POST",
@@ -97,25 +130,56 @@ export const fetchUserFills = (user: string, signal?: AbortSignal) =>
 export const fetchAllMids = (signal?: AbortSignal) =>
   post<AllMids>({ type: "allMids" }, signal);
 
+export const fetchPortfolio = (user: string, signal?: AbortSignal) =>
+  post<PortfolioHistory>({ type: "portfolio", user }, signal);
+
+export const fetchUserFunding = (
+  user: string,
+  startTime: number,
+  signal?: AbortSignal,
+) => post<FundingEntry[]>({ type: "userFunding", user, startTime }, signal);
+
+export function frameByKey(
+  history: PortfolioHistory | undefined,
+  key: PortfolioFrameKey,
+): PortfolioFrame | undefined {
+  return history?.find(([k]) => k === key)?.[1];
+}
+
 export type Snapshot = {
   state: ClearinghouseState;
   orders: OpenOrder[];
   fills: UserFill[];
   mids: AllMids;
+  portfolio: PortfolioHistory;
+  funding: FundingEntry[];
   fetchedAt: number;
 };
+
+const FUNDING_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
 
 export async function fetchSnapshot(
   user: string,
   signal?: AbortSignal,
 ): Promise<Snapshot> {
-  const [state, orders, fills, mids] = await Promise.all([
+  const fundingStart = Date.now() - FUNDING_LOOKBACK_MS;
+  const [state, orders, fills, mids, portfolio, funding] = await Promise.all([
     fetchClearinghouseState(user, signal),
     fetchOpenOrders(user, signal),
     fetchUserFills(user, signal),
     fetchAllMids(signal),
+    fetchPortfolio(user, signal),
+    fetchUserFunding(user, fundingStart, signal),
   ]);
-  return { state, orders, fills, mids, fetchedAt: Date.now() };
+  return {
+    state,
+    orders,
+    fills,
+    mids,
+    portfolio,
+    funding,
+    fetchedAt: Date.now(),
+  };
 }
 
 export function isValidAddress(addr: string): boolean {
