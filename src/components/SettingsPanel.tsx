@@ -1,6 +1,21 @@
 import { useEffect, useRef } from "react";
-import type { Settings, Theme, WebhookFormat } from "../lib/settings";
+import type {
+  PositionColumnVisibility,
+  Settings,
+  Theme,
+  WebhookFormat,
+} from "../lib/settings";
 import { isLikelyValidWebhookUrl } from "../lib/webhook";
+
+const POSITION_COLS: { id: keyof PositionColumnVisibility; label: string }[] = [
+  { id: "entry", label: "Entry price" },
+  { id: "mark", label: "Mark price" },
+  { id: "spark24h", label: "24H sparkline" },
+  { id: "liq", label: "Liq price" },
+  { id: "margin", label: "Margin used" },
+  { id: "roe", label: "ROE" },
+  { id: "lev", label: "Leverage" },
+];
 
 type Props = {
   open: boolean;
@@ -127,6 +142,27 @@ export function SettingsPanel({
               <span className="mono">{settings.refreshSeconds}s</span>
             </div>
           </Field>
+        </Section>
+
+        <Section title="Positions columns">
+          <p className="settings-hint">
+            Hide columns you don't need to declutter the Positions table. Coin, Side, Size, Position Value and Unrealized PnL stay visible.
+          </p>
+          <div className="settings-cols">
+            {POSITION_COLS.map((c) => (
+              <Toggle
+                key={c.id}
+                label={c.label}
+                checked={settings.positionColumns[c.id]}
+                onChange={(v) =>
+                  set("positionColumns", {
+                    ...settings.positionColumns,
+                    [c.id]: v,
+                  })
+                }
+              />
+            ))}
+          </div>
         </Section>
 
         <Section title="Equity chart">
