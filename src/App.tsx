@@ -33,12 +33,15 @@ import { PositionsBreakdown } from "./components/PositionsBreakdown";
 import { OrdersTable } from "./components/OrdersTable";
 import { FillsTable } from "./components/FillsTable";
 import { FundingTable } from "./components/FundingTable";
+import { FundingHeatmap } from "./components/FundingHeatmap";
 import { WalletMenu } from "./components/WalletMenu";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { CommandPalette, type CommandItem } from "./components/CommandPalette";
 import { useAggregateSnapshot } from "./hooks/useAggregateSnapshot";
 import { useLiqAlerts } from "./hooks/useLiqAlerts";
+import { useUpnlAlerts } from "./hooks/useUpnlAlerts";
 import { useMarkCandles } from "./hooks/useMarkCandles";
+import { useFundingRates } from "./hooks/useFundingRates";
 import type { WalletTag } from "./lib/aggregate";
 import { isValidAddress } from "./lib/hl";
 import { shortAddress, timeAgo } from "./lib/format";
@@ -48,6 +51,7 @@ import {
   removeWallet,
   renameWallet,
   saveWallets,
+  setWalletNotes,
   type SavedWallet,
 } from "./lib/wallets";
 import {
@@ -56,7 +60,7 @@ import {
   type Settings,
 } from "./lib/settings";
 
-type Tab = "positions" | "orders" | "fills" | "funding";
+type Tab = "positions" | "orders" | "fills" | "funding" | "rates";
 
 const STORAGE_KEY = "hyper-display.address";
 const ALL = "ALL";
@@ -170,12 +174,22 @@ export default function App() {
     [positions],
   );
   const candles = useMarkCandles(positionCoins);
+  const fundingRates = useFundingRates();
 
   useLiqAlerts({
     notifyEnabled: settings.notifyLiqEnabled && notifPermission === "granted",
     thresholdPct: settings.liqThresholdPct,
     positions,
     mids: data?.mids ?? {},
+    webhookEnabled: settings.webhookEnabled,
+    webhookUrl: settings.webhookUrl,
+    webhookFormat: settings.webhookFormat,
+  });
+
+  useUpnlAlerts({
+    rules: settings.alertRules,
+    positions,
+    notifyEnabled: notifPermission === "granted",
     webhookEnabled: settings.webhookEnabled,
     webhookUrl: settings.webhookUrl,
     webhookFormat: settings.webhookFormat,
@@ -229,6 +243,10 @@ export default function App() {
 
   const onRenameWallet = useCallback((addr: string, label: string) => {
     setWallets((prev) => renameWallet(prev, addr, label));
+  }, []);
+
+  const onSetWalletNotes = useCallback((addr: string, notes: string) => {
+    setWallets((prev) => setWalletNotes(prev, addr, notes));
   }, []);
 
   const onRequestPermission = useCallback(async () => {
@@ -302,6 +320,7 @@ export default function App() {
       { id: "orders", label: "Open Orders" },
       { id: "fills", label: "Recent Fills" },
       { id: "funding", label: "Funding" },
+      { id: "rates", label: "Funding Rates" },
     ];
     for (const t of tabs) {
       items.push({
@@ -434,6 +453,7 @@ export default function App() {
           onSave={onSaveCurrent}
           onRemove={onRemoveWallet}
           onRename={onRenameWallet}
+          onSetNotes={onSetWalletNotes}
           onPickAll={() => setSelection(ALL)}
           aggregateActive={aggregate}
         />
@@ -518,6 +538,13 @@ export default function App() {
                 active={tab === "funding"}
                 onClick={() => setTab("funding")}
               />
+              <Tab
+                id="rates"
+                label="Rates"
+                count={fundingRates.rows.length}
+                active={tab === "rates"}
+                onClick={() => setTab("rates")}
+              />
             </div>
             <div className="panel-body">
               {tab === "positions" && (
@@ -531,6 +558,7 @@ export default function App() {
                     candles={candles}
                     aggregate={aggregate}
                     columns={settings.positionColumns}
+                    selfWallet={aggregate ? undefined : address}
                   />
                 </>
               )}
@@ -550,6 +578,9 @@ export default function App() {
                   address={aggregate ? "all-wallets" : address}
                   aggregate={aggregate}
                 />
+              )}
+              {tab === "rates" && (
+                <FundingHeatmap rows={fundingRates.rows} />
               )}
             </div>
           </div>

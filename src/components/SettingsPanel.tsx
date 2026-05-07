@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import type {
+  AlertRule,
+  AlertRuleType,
   PositionColumnVisibility,
   Settings,
   Theme,
@@ -244,6 +246,16 @@ export function SettingsPanel({
           </div>
         </Section>
 
+        <Section title="Custom alert rules">
+          <p className="settings-hint">
+            Trigger when your total unrealized PnL crosses a threshold. Fires through whatever channels you've enabled (notifications and / or webhook), throttled to one per rule every 30 minutes.
+          </p>
+          <RulesEditor
+            rules={settings.alertRules}
+            onChange={(next) => set("alertRules", next)}
+          />
+        </Section>
+
         <Section title="Webhook mirror">
           <Toggle
             label="Mirror alerts to a webhook"
@@ -327,6 +339,86 @@ function Field({
       <div className="settings-field-label">{label}</div>
       {children}
     </div>
+  );
+}
+
+function RulesEditor({
+  rules,
+  onChange,
+}: {
+  rules: AlertRule[];
+  onChange: (next: AlertRule[]) => void;
+}) {
+  const update = (id: string, patch: Partial<AlertRule>) =>
+    onChange(rules.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  const remove = (id: string) => onChange(rules.filter((r) => r.id !== id));
+  const add = () =>
+    onChange([
+      ...rules,
+      {
+        id: `rule-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        type: "upnl-below",
+        threshold: -100,
+        enabled: true,
+      },
+    ]);
+  return (
+    <>
+      {rules.length === 0 && (
+        <p className="settings-hint subtle">No rules yet.</p>
+      )}
+      {rules.map((r) => {
+        const types: { v: AlertRuleType; label: string }[] = [
+          { v: "upnl-below", label: "uPnL below" },
+          { v: "upnl-above", label: "uPnL above" },
+        ];
+        return (
+          <div key={r.id} className="rule-row">
+            <label className="rule-toggle">
+              <input
+                type="checkbox"
+                checked={r.enabled}
+                onChange={(e) => update(r.id, { enabled: e.target.checked })}
+              />
+              <span className="settings-toggle-track" aria-hidden />
+            </label>
+            <select
+              className="rule-select"
+              value={r.type}
+              onChange={(e) =>
+                update(r.id, { type: e.target.value as AlertRuleType })
+              }
+            >
+              {types.map((t) => (
+                <option key={t.v} value={t.v}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              className="rule-input mono"
+              value={r.threshold}
+              onChange={(e) =>
+                update(r.id, { threshold: parseFloat(e.target.value) || 0 })
+              }
+              step={10}
+            />
+            <button
+              type="button"
+              className="settings-btn rule-remove"
+              onClick={() => remove(r.id)}
+              title="Remove rule"
+            >
+              ✕
+            </button>
+          </div>
+        );
+      })}
+      <button type="button" className="settings-btn" onClick={add}>
+        + Add rule
+      </button>
+    </>
   );
 }
 

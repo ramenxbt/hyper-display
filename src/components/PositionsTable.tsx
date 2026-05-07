@@ -14,6 +14,7 @@ import { WalletChip } from "./WalletChip";
 import { useSort } from "../hooks/useSort";
 import { SortableHeader } from "./SortableHeader";
 import type { PositionColumnVisibility } from "../lib/settings";
+import { invoke } from "@tauri-apps/api/core";
 
 type Props = {
   positions: TaggedAssetPosition[];
@@ -21,6 +22,7 @@ type Props = {
   candles: CandleSeries;
   aggregate?: boolean;
   columns: PositionColumnVisibility;
+  selfWallet?: string;
 };
 
 type SortKey =
@@ -42,7 +44,16 @@ export function PositionsTable({
   candles,
   aggregate,
   columns,
+  selfWallet,
 }: Props) {
+  const onPin = (coin: string, wallet: string | undefined) => {
+    const target = wallet || selfWallet || "";
+    if (!target) return;
+    invoke("open_pin_window", { coin, wallet: target }).catch((err) =>
+      console.warn("pin window failed", err),
+    );
+  };
+
   const maxAbsPnl = useMemo(() => {
     let m = 0;
     for (const ap of positions) {
@@ -122,6 +133,7 @@ export function PositionsTable({
           {columns.lev && (
             <SortableHeader<SortKey> label="Lev" sortKey="lev" state={sort} onSort={onClick} />
           )}
+          <th aria-label="Actions"></th>
         </tr>
       </thead>
       <tbody>
@@ -183,6 +195,16 @@ export function PositionsTable({
                   {p.leverage.value}× {p.leverage.type === "isolated" ? "iso" : "x"}
                 </td>
               )}
+              <td className="pin-cell">
+                <button
+                  type="button"
+                  className="pin-btn"
+                  title="Pin this position to a floating window"
+                  onClick={() => onPin(p.coin, ap.wallet?.address)}
+                >
+                  ⤴
+                </button>
+              </td>
             </tr>
           );
         })}
