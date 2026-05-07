@@ -5,6 +5,68 @@
   background: var(--bg);
 }
 
+/* COMPACT DENSITY (auto in menu-bar mode) */
+.app.compact .topbar {
+  height: 40px;
+  padding: 0 10px;
+  gap: 10px;
+}
+.app.compact .brand-name {
+  display: none;
+}
+.app.compact .topbar-status {
+  display: none;
+}
+.app.compact .summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.app.compact .summary-cell {
+  padding: 8px 10px;
+}
+.app.compact .summary-cell .v {
+  font-size: 13px;
+}
+.app.compact .equity {
+  padding: 8px 10px 10px;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.app.compact .equity-pnl {
+  display: none;
+}
+.app.compact .tabs {
+  height: 30px;
+  padding: 0 10px;
+}
+.app.compact .tab {
+  padding: 0 10px;
+  font-size: 11px;
+}
+.app.compact .table thead th {
+  padding: 6px 8px;
+  font-size: 9.5px;
+}
+.app.compact .table tbody td {
+  padding: 6px 8px;
+  font-size: 11px;
+}
+.app.compact .pnl-bar {
+  width: 28px;
+}
+.app.compact .funding-summary {
+  padding: 8px 10px;
+}
+.app.compact .coin-filter {
+  padding: 6px 10px;
+}
+.app.compact .address-bar {
+  height: 26px;
+}
+.app.compact .wallet-trigger {
+  height: 26px;
+  padding: 0 8px;
+}
+
 /* TOP BAR */
 .topbar {
   display: flex;
@@ -469,6 +531,36 @@
   font-weight: 500;
 }
 
+/* PNL CONTRIBUTION BAR */
+.pnl-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+.pnl-bar {
+  display: inline-block;
+  width: 48px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.pnl-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  transition: width 200ms ease-out;
+}
+.long-fill {
+  background: var(--long);
+}
+.short-fill {
+  background: var(--short);
+}
+
 /* COIN FILTER */
 .coin-filter {
   display: flex;
@@ -763,6 +855,33 @@
   border-color: var(--border-strong);
 }
 .settings-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.settings-input {
+  height: 30px;
+  padding: 0 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-size: 11px;
+  color: var(--text);
+  width: 100%;
+}
+.settings-input:focus {
+  border-color: rgba(151, 252, 228, 0.35);
+}
+.settings-input:disabled {
+  opacity: 0.4;
+}
+.format-pills {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 0;
+}
+.format-pills .pill:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }

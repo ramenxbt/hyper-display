@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import type { Settings } from "../lib/settings";
+import type { Settings, WebhookFormat } from "../lib/settings";
+import { isLikelyValidWebhookUrl } from "../lib/webhook";
 
 type Props = {
   open: boolean;
@@ -7,9 +8,16 @@ type Props = {
   onChange: (next: Settings) => void;
   onClose: () => void;
   onTestNotification: () => void;
+  onTestWebhook: () => void;
   notifPermission: "granted" | "denied" | "unknown";
   onRequestPermission: () => void;
 };
+
+const FORMATS: { v: WebhookFormat; label: string }[] = [
+  { v: "discord", label: "Discord" },
+  { v: "slack", label: "Slack" },
+  { v: "generic", label: "Generic JSON" },
+];
 
 export function SettingsPanel({
   open,
@@ -17,6 +25,7 @@ export function SettingsPanel({
   onChange,
   onClose,
   onTestNotification,
+  onTestWebhook,
   notifPermission,
   onRequestPermission,
 }: Props) {
@@ -36,6 +45,8 @@ export function SettingsPanel({
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) =>
     onChange({ ...settings, [k]: v });
 
+  const webhookValid = isLikelyValidWebhookUrl(settings.webhookUrl);
+
   return (
     <div className="settings-overlay" onMouseDown={onClose}>
       <div
@@ -51,6 +62,21 @@ export function SettingsPanel({
             ✕
           </button>
         </div>
+
+        <Section title="Window">
+          <Toggle
+            label="Menu-bar mode"
+            description="Smaller, undecorated, always-on-top window. macOS hides the dock icon."
+            checked={settings.menuBarMode}
+            onChange={(v) => set("menuBarMode", v)}
+          />
+          <Toggle
+            label="Compact density"
+            description="Tighter row padding and smaller fonts."
+            checked={settings.compactMode}
+            onChange={(v) => set("compactMode", v)}
+          />
+        </Section>
 
         <Section title="Refresh">
           <Field label="Polling interval">
@@ -97,7 +123,7 @@ export function SettingsPanel({
                 onChange={(e) =>
                   set("liqThresholdPct", parseInt(e.target.value, 10))
                 }
-                disabled={!settings.notifyLiqEnabled}
+                disabled={!settings.notifyLiqEnabled && !settings.webhookEnabled}
               />
               <span className="mono">{settings.liqThresholdPct}%</span>
             </div>
@@ -132,6 +158,58 @@ export function SettingsPanel({
             >
               Send test
             </button>
+          </div>
+        </Section>
+
+        <Section title="Webhook mirror">
+          <Toggle
+            label="Mirror alerts to a webhook"
+            description="Posts the same liquidation alerts to a Discord, Slack, or generic JSON endpoint."
+            checked={settings.webhookEnabled}
+            onChange={(v) => set("webhookEnabled", v)}
+          />
+          <Field label="Format">
+            <div className="format-pills">
+              {FORMATS.map((f) => (
+                <button
+                  key={f.v}
+                  type="button"
+                  className={`pill ${settings.webhookFormat === f.v ? "active" : ""}`}
+                  onClick={() => set("webhookFormat", f.v)}
+                  disabled={!settings.webhookEnabled}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field label="URL">
+            <input
+              type="text"
+              spellCheck={false}
+              autoCapitalize="none"
+              autoCorrect="off"
+              className="settings-input mono"
+              placeholder="https://discord.com/api/webhooks/…"
+              value={settings.webhookUrl}
+              onChange={(e) => set("webhookUrl", e.target.value)}
+              disabled={!settings.webhookEnabled}
+            />
+          </Field>
+          <div className="settings-row">
+            <button
+              type="button"
+              className="settings-btn"
+              onClick={onTestWebhook}
+              disabled={!settings.webhookEnabled || !webhookValid}
+            >
+              Send test webhook
+            </button>
+            {settings.webhookEnabled && !webhookValid && settings.webhookUrl && (
+              <span className="error" style={{ fontSize: 11 }}>
+                URL must start with http(s)://
+              </span>
+            )}
           </div>
         </Section>
       </div>
