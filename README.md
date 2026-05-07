@@ -11,6 +11,10 @@ A read-only desktop app that mirrors the Hyperliquid trading view for any wallet
 [![Hyperliquid Info API](https://img.shields.io/badge/data-Hyperliquid_Info_API-97FCE4.svg)](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint)
 [![Latest tag](https://img.shields.io/github/v/tag/ramenxbt/hyper-display?label=latest&color=97FCE4)](https://github.com/ramenxbt/hyper-display/releases)
 
+<br />
+
+<img src="docs/screenshots/dashboard.png" alt="Hyper-Display dashboard" width="900" />
+
 </div>
 
 ## Why
@@ -66,7 +70,23 @@ It is **read-only by design**. No keys, no signatures, no servers. Just the publ
 
 ## Screenshots
 
-_Coming with the v1.0 release pass._ Until then, run it locally (see **Build from source** below) and you will see the same layout as the screenshots will eventually show.
+### Full dashboard
+
+The Positions tab with realized + unrealized PnL donuts (sliced by coin), the equity sparkline strip with 24H / 7D / 30D / All toggle, and the live positions table.
+
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="Hyper-Display dashboard" width="900" />
+</p>
+
+### Menu-bar mode and Settings
+
+Left: collapses to a small always-on-top window with the dock icon hidden, anchored under the tray icon. Right: settings panel with theme, polling interval, column visibility, alerts, webhook, and backup.
+
+<p align="center">
+  <img src="docs/screenshots/menu-bar.png" alt="Menu-bar mode" width="380" />
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/settings.png" alt="Settings panel" width="380" />
+</p>
 
 ## Install
 
