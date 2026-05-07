@@ -10,6 +10,7 @@ export type Settings = {
   webhookEnabled: boolean;
   webhookUrl: string;
   webhookFormat: WebhookFormat;
+  autoLaunch: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -22,6 +23,7 @@ export const DEFAULT_SETTINGS: Settings = {
   webhookEnabled: false,
   webhookUrl: "",
   webhookFormat: "discord",
+  autoLaunch: false,
 };
 
 const KEY = "hyper-display.settings";

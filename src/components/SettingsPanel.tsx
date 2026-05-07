@@ -76,6 +76,12 @@ export function SettingsPanel({
             checked={settings.compactMode}
             onChange={(v) => set("compactMode", v)}
           />
+          <Toggle
+            label="Launch on login"
+            description="Start Hyper-Display automatically when you sign in."
+            checked={settings.autoLaunch}
+            onChange={(v) => set("autoLaunch", v)}
+          />
         </Section>
 
         <Section title="Refresh">
