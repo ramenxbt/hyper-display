@@ -38,6 +38,10 @@ Use it for:
 - **Funding-rate heatmap** — fifth tab listing every Hyperliquid coin's current 1H funding rate as a colour-coded grid (green = shorts pay, red = longs pay), with annualised APR in each tile.
 - **Custom alert rules** — fire native + webhook alerts when total uPnL crosses any threshold you pin.
 - **Pin a position** — click the ⤴ on any Positions row to spawn a small always-on-top floating window of just that coin (size, mark, liq, ROE, 24H sparkline).
+- **Pinned-window layout persistence** — pin positions, drag windows where you want them, quit the app; on next launch the same set re-opens at the same place.
+- **Funding-rate watchlist** — star coins on the Rates tab and add a `funding |rate| above %` alert rule that fires only on watchlisted coins.
+- **Order-book panel** — new "Book" tab with a coin picker, side-by-side bid/ask ladders, cumulative depth bars, best-bid/ask + spread (in price and bps).
+- **Spot balances tab** — read-only Hyperliquid spot balances (available / on-hold / entry notional), aggregated when the All-wallets view is active.
 - **Per-coin filter** on Fills and Funding tabs.
 - **Liquidation alerts** — opt-in native desktop notifications when mark price approaches your liquidation price (configurable threshold, throttled per coin).
 - **Menu-bar tray icon** — click to show or hide the main window; right-click for the show / hide / quit menu.
@@ -115,17 +119,19 @@ All data comes from a single public endpoint:
 | `userFunding`          | hourly funding payments over the lookback   |
 | `candleSnapshot`       | OHLCV candles per coin for inline sparklines |
 | `metaAndAssetCtxs`     | universe-wide funding rates and mark prices  |
+| `l2Book`               | bid/ask ladder for the order-book panel      |
+| `spotClearinghouseState` | spot balances per token                    |
 
 See the [Hyperliquid Info API docs](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint).
 
 ## Roadmap
 
-Planned for v0.9:
+Planned for v1.0:
 
-- Funding-rate watchlist (subscribe to specific coins, alert on threshold).
-- Order-book depth panel for the active coin.
-- Multiple pinned windows arranged in a saved layout.
-- Optional Hyperliquid spot-tab (read-only spot positions).
+- First public release pass: app icon set, signed macOS DMG / Windows MSI artifacts.
+- Onboarding overlay for first-time launch.
+- Diagnostics screen (data-source latencies, last-error log).
+- Polished website with screenshots and a download CTA.
 
 ## Privacy
 
