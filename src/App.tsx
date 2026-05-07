@@ -29,11 +29,13 @@ import { AddressBar } from "./components/AddressBar";
 import { AccountSummary } from "./components/AccountSummary";
 import { EquityStrip } from "./components/EquityStrip";
 import { PositionsTable } from "./components/PositionsTable";
+import { PositionsBreakdown } from "./components/PositionsBreakdown";
 import { OrdersTable } from "./components/OrdersTable";
 import { FillsTable } from "./components/FillsTable";
 import { FundingTable } from "./components/FundingTable";
 import { WalletMenu } from "./components/WalletMenu";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { CommandPalette, type CommandItem } from "./components/CommandPalette";
 import { useAggregateSnapshot } from "./hooks/useAggregateSnapshot";
 import { useLiqAlerts } from "./hooks/useLiqAlerts";
 import { useMarkCandles } from "./hooks/useMarkCandles";
@@ -71,6 +73,7 @@ export default function App() {
   const [notifPermission, setNotifPermission] =
     useState<"granted" | "denied" | "unknown">("unknown");
   const [tab, setTab] = useState<Tab>("positions");
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -129,6 +132,10 @@ export default function App() {
       if (meta && (e.key === "," || e.key === ".")) {
         e.preventDefault();
         setSettingsOpen((v) => !v);
+      }
+      if (meta && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -267,6 +274,99 @@ export default function App() {
       return merged;
     });
   }, []);
+
+  const commandItems = useMemo<CommandItem[]>(() => {
+    const items: CommandItem[] = [];
+    if (wallets.length >= 2) {
+      items.push({
+        id: "wallet-all",
+        group: "Wallets",
+        label: "All wallets (aggregate)",
+        hint: `${wallets.length} accounts`,
+        shortcut: "⌘0",
+        perform: () => setSelection(ALL),
+      });
+    }
+    wallets.forEach((w, i) => {
+      items.push({
+        id: `wallet-${w.address}`,
+        group: "Wallets",
+        label: w.label || shortAddress(w.address),
+        hint: w.label ? shortAddress(w.address) : undefined,
+        shortcut: i < 9 ? `⌘${i + 1}` : undefined,
+        perform: () => setSelection(w.address),
+      });
+    });
+    const tabs: { id: Tab; label: string }[] = [
+      { id: "positions", label: "Positions" },
+      { id: "orders", label: "Open Orders" },
+      { id: "fills", label: "Recent Fills" },
+      { id: "funding", label: "Funding" },
+    ];
+    for (const t of tabs) {
+      items.push({
+        id: `tab-${t.id}`,
+        group: "Tabs",
+        label: t.label,
+        perform: () => setTab(t.id),
+      });
+    }
+    const coinSet = new Set<string>();
+    for (const p of positions) coinSet.add(p.position.coin);
+    for (const c of coinSet) {
+      items.push({
+        id: `coin-${c}`,
+        group: "Coins",
+        label: c,
+        hint: "View details",
+        perform: () => {
+          setTab("positions");
+        },
+      });
+    }
+    items.push(
+      {
+        id: "settings",
+        group: "Actions",
+        label: "Open settings",
+        shortcut: "⌘,",
+        perform: () => setSettingsOpen(true),
+      },
+      {
+        id: "menubar-toggle",
+        group: "Actions",
+        label: settings.menuBarMode ? "Exit menu-bar mode" : "Enter menu-bar mode",
+        perform: () =>
+          setSettings((s) => ({ ...s, menuBarMode: !s.menuBarMode })),
+      },
+      {
+        id: "compact-toggle",
+        group: "Actions",
+        label: settings.compactMode ? "Disable compact density" : "Enable compact density",
+        perform: () =>
+          setSettings((s) => ({ ...s, compactMode: !s.compactMode })),
+      },
+      {
+        id: "theme-dark",
+        group: "Theme",
+        label: "Dark",
+        perform: () => setSettings((s) => ({ ...s, theme: "dark" })),
+      },
+      {
+        id: "theme-light",
+        group: "Theme",
+        label: "Light",
+        perform: () => setSettings((s) => ({ ...s, theme: "light" })),
+      },
+      {
+        id: "theme-auto",
+        group: "Theme",
+        label: "Auto (system)",
+        perform: () => setSettings((s) => ({ ...s, theme: "auto" })),
+      },
+    );
+    return items;
+  }, [wallets, positions, settings.menuBarMode, settings.compactMode]);
 
   const onTestWebhook = useCallback(async () => {
     try {
@@ -421,12 +521,18 @@ export default function App() {
             </div>
             <div className="panel-body">
               {tab === "positions" && (
-                <PositionsTable
-                  positions={positions}
-                  mids={data?.mids ?? {}}
-                  candles={candles}
-                  aggregate={aggregate}
-                />
+                <>
+                  {positions.length > 0 && (
+                    <PositionsBreakdown positions={positions} fills={fills} />
+                  )}
+                  <PositionsTable
+                    positions={positions}
+                    mids={data?.mids ?? {}}
+                    candles={candles}
+                    aggregate={aggregate}
+                    columns={settings.positionColumns}
+                  />
+                </>
               )}
               {tab === "orders" && (
                 <OrdersTable orders={orders} aggregate={aggregate} />
@@ -449,6 +555,12 @@ export default function App() {
           </div>
         </>
       )}
+
+      <CommandPalette
+        open={paletteOpen}
+        items={commandItems}
+        onClose={() => setPaletteOpen(false)}
+      />
 
       <SettingsPanel
         open={settingsOpen}
