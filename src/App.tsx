@@ -1,15 +1,26 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "./App.css";
 import { AddressBar } from "./components/AddressBar";
 import { AccountSummary } from "./components/AccountSummary";
+import { EquityStrip } from "./components/EquityStrip";
 import { PositionsTable } from "./components/PositionsTable";
 import { OrdersTable } from "./components/OrdersTable";
 import { FillsTable } from "./components/FillsTable";
+import { FundingTable } from "./components/FundingTable";
+import { WalletMenu } from "./components/WalletMenu";
 import { useSnapshot } from "./hooks/useSnapshot";
 import { isValidAddress } from "./lib/hl";
 import { shortAddress, timeAgo } from "./lib/format";
+import {
+  addWallet,
+  loadWallets,
+  removeWallet,
+  renameWallet,
+  saveWallets,
+  type SavedWallet,
+} from "./lib/wallets";
 
-type Tab = "positions" | "orders" | "fills";
+type Tab = "positions" | "orders" | "fills" | "funding";
 
 const STORAGE_KEY = "hyper-display.address";
 const REFRESH_MS = 5000;
@@ -18,6 +29,7 @@ export default function App() {
   const [address, setAddress] = useState<string>(() => {
     return localStorage.getItem(STORAGE_KEY) ?? "";
   });
+  const [wallets, setWallets] = useState<SavedWallet[]>(() => loadWallets());
   const [tab, setTab] = useState<Tab>("positions");
   const [now, setNow] = useState(Date.now());
 
@@ -26,15 +38,55 @@ export default function App() {
   }, [address]);
 
   useEffect(() => {
+    saveWallets(wallets);
+  }, [wallets]);
+
+  useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, []);
+
+  // cmd+1..9 / ctrl+1..9 to switch wallets
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const meta = e.metaKey || e.ctrlKey;
+      if (!meta) return;
+      const num = parseInt(e.key, 10);
+      if (Number.isFinite(num) && num >= 1 && num <= 9) {
+        const target = wallets[num - 1];
+        if (target) {
+          e.preventDefault();
+          setAddress(target.address);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [wallets]);
 
   const { data, error, loading, lastUpdated } = useSnapshot(address, REFRESH_MS);
 
   const positions = data?.state.assetPositions ?? [];
   const orders = data?.orders ?? [];
   const fills = data?.fills ?? [];
+  const funding = data?.funding ?? [];
+  const portfolio = data?.portfolio;
+
+  const onSaveCurrent = useCallback(
+    (label?: string) => {
+      if (!isValidAddress(address)) return;
+      setWallets((prev) => addWallet(prev, { address, label }));
+    },
+    [address],
+  );
+
+  const onRemoveWallet = useCallback((addr: string) => {
+    setWallets((prev) => removeWallet(prev, addr));
+  }, []);
+
+  const onRenameWallet = useCallback((addr: string, label: string) => {
+    setWallets((prev) => renameWallet(prev, addr, label));
+  }, []);
 
   const status = !isValidAddress(address)
     ? "idle"
@@ -62,6 +114,14 @@ export default function App() {
           <span className="brand-name">Hyper-Display</span>
         </div>
         <AddressBar value={address} onChange={setAddress} />
+        <WalletMenu
+          wallets={wallets}
+          active={address}
+          onPick={setAddress}
+          onSave={onSaveCurrent}
+          onRemove={onRemoveWallet}
+          onRename={onRenameWallet}
+        />
         <div className="topbar-status">
           {isValidAddress(address) && (
             <span className="mono subtle">{shortAddress(address)}</span>
@@ -80,38 +140,49 @@ export default function App() {
       ) : error && !data ? (
         <ErrorState message={error} />
       ) : (
-        <div className="panels">
-          <div className="tabs" role="tablist">
-            <Tab
-              id="positions"
-              label="Positions"
-              count={positions.length}
-              active={tab === "positions"}
-              onClick={() => setTab("positions")}
-            />
-            <Tab
-              id="orders"
-              label="Open Orders"
-              count={orders.length}
-              active={tab === "orders"}
-              onClick={() => setTab("orders")}
-            />
-            <Tab
-              id="fills"
-              label="Recent Fills"
-              count={fills.length}
-              active={tab === "fills"}
-              onClick={() => setTab("fills")}
-            />
+        <>
+          <EquityStrip portfolio={portfolio} />
+          <div className="panels">
+            <div className="tabs" role="tablist">
+              <Tab
+                id="positions"
+                label="Positions"
+                count={positions.length}
+                active={tab === "positions"}
+                onClick={() => setTab("positions")}
+              />
+              <Tab
+                id="orders"
+                label="Open Orders"
+                count={orders.length}
+                active={tab === "orders"}
+                onClick={() => setTab("orders")}
+              />
+              <Tab
+                id="fills"
+                label="Recent Fills"
+                count={fills.length}
+                active={tab === "fills"}
+                onClick={() => setTab("fills")}
+              />
+              <Tab
+                id="funding"
+                label="Funding"
+                count={funding.length}
+                active={tab === "funding"}
+                onClick={() => setTab("funding")}
+              />
+            </div>
+            <div className="panel-body">
+              {tab === "positions" && (
+                <PositionsTable positions={positions} mids={data?.mids ?? {}} />
+              )}
+              {tab === "orders" && <OrdersTable orders={orders} />}
+              {tab === "fills" && <FillsTable fills={fills} />}
+              {tab === "funding" && <FundingTable entries={funding} />}
+            </div>
           </div>
-          <div className="panel-body">
-            {tab === "positions" && (
-              <PositionsTable positions={positions} mids={data?.mids ?? {}} />
-            )}
-            {tab === "orders" && <OrdersTable orders={orders} />}
-            {tab === "fills" && <FillsTable fills={fills} />}
-          </div>
-        </div>
+        </>
       )}
     </div>
   );
