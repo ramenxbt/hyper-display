@@ -30,6 +30,10 @@ Use it for:
 - **Multi-account aggregate view** — one virtual "All wallets" entry sums account value, positions, orders, fills, and funding across every saved wallet (`⌘0` shortcut). Tables tag each row with the originating wallet.
 - **Light / Dark / Auto theme** — Auto follows your system colour scheme.
 - **Backup** — one-click JSON export and import of saved wallets and settings; drop it in iCloud, Drive, or Dropbox.
+- **Realized + Unrealized PnL donuts** above the Positions table, with per-coin slices, legend, and net total.
+- **Sortable headers** on Positions, Open Orders, Recent Fills, and Funding tables (tri-state click cycle).
+- **Configurable Positions columns** in Settings → "Positions columns".
+- **Command palette** (`⌘K`) — fuzzy search over wallets, tabs, coins, theme, and quick actions.
 - **Per-coin filter** on Fills and Funding tabs.
 - **Liquidation alerts** — opt-in native desktop notifications when mark price approaches your liquidation price (configurable threshold, throttled per coin).
 - **Menu-bar tray icon** — click to show or hide the main window; right-click for the show / hide / quit menu.
@@ -111,12 +115,12 @@ See the [Hyperliquid Info API docs](https://hyperliquid.gitbook.io/hyperliquid-d
 
 ## Roadmap
 
-Planned for v0.7:
+Planned for v0.8:
 
-- Per-coin notional and position-share donuts on Positions.
-- Sortable table headers across all four tabs.
-- Configurable column visibility per table.
-- Optional command-palette search (`⌘K`) over wallets, coins, and tabs.
+- Notes per saved wallet (free-text annotations stored alongside labels).
+- Custom alert rules (e.g. "ping me when uPnL drops below X").
+- Heatmap of historical funding rates per coin.
+- Optional click-to-pin floating mini-window of a single position.
 
 ## Privacy
 
