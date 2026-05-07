@@ -90,7 +90,69 @@ Left: collapses to a small always-on-top window with the dock icon hidden, ancho
 
 ## Install
 
-> Pre-built binaries land on the [Releases](https://github.com/ramenxbt/hyper-display/releases) page. Until v1.0, the most reliable path is to **build from source** (about three minutes on a recent machine).
+Hyper-Display is a regular desktop app. Pick your platform, click the matching link on the [latest release page](https://github.com/ramenxbt/hyper-display/releases/latest), open the downloaded file. That's it.
+
+> The pre-v1.0 binaries are **not signed**. macOS Gatekeeper and Windows SmartScreen will warn you on first launch. Each section below has a one-step bypass.
+
+<details open>
+<summary><b>🍎 macOS (Apple Silicon and Intel)</b></summary>
+
+1. On the [latest release](https://github.com/ramenxbt/hyper-display/releases/latest) page, download the `.dmg` whose name matches your Mac:
+   - Apple Silicon (M1/M2/M3/M4): the file ending in `aarch64.dmg`.
+   - Intel: the file ending in `x64.dmg`.
+2. Open the `.dmg` and drag **Hyper-Display** into your **Applications** folder.
+3. Open Applications, **right-click Hyper-Display, choose Open**, then click **Open** in the dialog. (You only do this once. After that, just double-click like any other app.)
+
+If you see "Hyper-Display.app is damaged and can't be opened" instead of the right-click dialog, run this once in Terminal:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Hyper-Display.app
+```
+
+That removes the quarantine flag macOS attaches to unsigned downloads.
+
+**One-line install** (Apple Silicon and Intel) using the helper script:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ramenxbt/hyper-display/main/install.sh | bash
+```
+
+The script picks the right `.dmg`, downloads it, and opens the installer.
+
+</details>
+
+<details>
+<summary><b>🪟 Windows 10 / 11</b></summary>
+
+1. On the [latest release](https://github.com/ramenxbt/hyper-display/releases/latest) page, download the file ending in `x64-setup.exe` (NSIS installer) or `x64_en-US.msi` (MSI). Either works; `.exe` is friendlier.
+2. Double-click the downloaded file.
+3. Windows Defender SmartScreen will pop up because the binary is unsigned. Click **More info → Run anyway**.
+4. Follow the installer (Next → Next → Finish).
+
+After install, search for **Hyper-Display** in the Start menu.
+
+</details>
+
+<details>
+<summary><b>🐧 Linux (Debian / Ubuntu / Fedora / others)</b></summary>
+
+The release ships three artifacts for Linux. Pick whichever fits your distro:
+
+| Format | When to use it |
+| --- | --- |
+| `.AppImage` | Works on every modern distro. No install needed: `chmod +x` and double-click. |
+| `.deb` | Debian, Ubuntu, Pop!\_OS, Mint. `sudo apt install ./hyper-display_*.deb` |
+| `.rpm` | Fedora, RHEL, openSUSE. `sudo rpm -i hyper-display-*.rpm` |
+
+**One-line install** (AppImage into `~/.local/bin`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ramenxbt/hyper-display/main/install.sh | bash
+```
+
+</details>
+
+If your platform isn't in the release assets yet (we ship arm64 macOS, x64 macOS, x64 Windows, x64 Linux), see **Build from source** below.
 
 ## Build from source
 
