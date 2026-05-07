@@ -1,5 +1,7 @@
+import { useMemo, useState } from "react";
 import type { FundingEntry } from "../lib/hl";
 import { fmtSignedUsd, fmtSize } from "../lib/format";
+import { CoinFilter, coinCounts } from "./CoinFilter";
 
 type Props = { entries: FundingEntry[] };
 
@@ -18,11 +20,27 @@ function fmtFundingTime(ts: number): string {
 function fmtRate(rate: string): string {
   const n = parseFloat(rate);
   if (!Number.isFinite(n)) return "—";
-  // rate is per-hour; show as basis points with 4 decimals
   return `${(n * 100).toFixed(4)}%`;
 }
 
 export function FundingTable({ entries }: Props) {
+  const [coin, setCoin] = useState<string | null>(null);
+
+  const counts = useMemo(
+    () => coinCounts(entries.map((e) => ({ coin: e.delta.coin }))),
+    [entries],
+  );
+
+  const filtered = useMemo(
+    () => (coin ? entries.filter((e) => e.delta.coin === coin) : entries),
+    [entries, coin],
+  );
+
+  const total = useMemo(
+    () => filtered.reduce((acc, e) => acc + parseFloat(e.delta.usdc), 0),
+    [filtered],
+  );
+
   if (!entries.length) {
     return (
       <div className="empty">
@@ -33,22 +51,21 @@ export function FundingTable({ entries }: Props) {
       </div>
     );
   }
-  const rows = [...entries].sort((a, b) => b.time - a.time).slice(0, MAX_ROWS);
 
-  let total = 0;
-  for (const e of entries) total += parseFloat(e.delta.usdc);
+  const rows = [...filtered].sort((a, b) => b.time - a.time).slice(0, MAX_ROWS);
 
   return (
     <>
       <div className="funding-summary">
-        <span className="k">30D net funding</span>
+        <span className="k">{coin ? `${coin} net (30D)` : "30D net funding"}</span>
         <span
           className={`v mono ${total > 0 ? "long" : total < 0 ? "short" : "muted"}`}
         >
           {fmtSignedUsd(total)}
         </span>
-        <span className="muted subtle">{entries.length} payments</span>
+        <span className="muted subtle">{filtered.length} payments</span>
       </div>
+      <CoinFilter coins={counts} selected={coin} onSelect={setCoin} />
       <table className="table">
         <thead>
           <tr>
