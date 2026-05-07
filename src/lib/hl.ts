@@ -167,6 +167,30 @@ export const fetchCandleSnapshot = (
     signal,
   );
 
+export type AssetMeta = {
+  name: string;
+  szDecimals: number;
+  maxLeverage: number;
+  onlyIsolated?: boolean;
+};
+
+export type AssetCtx = {
+  funding: string;
+  openInterest: string;
+  prevDayPx: string;
+  dayNtlVlm: string;
+  premium?: string;
+  oraclePx: string;
+  markPx: string;
+  midPx?: string;
+  dayBaseVlm: string;
+};
+
+export type MetaAndCtxs = [{ universe: AssetMeta[] }, AssetCtx[]];
+
+export const fetchMetaAndAssetCtxs = (signal?: AbortSignal) =>
+  post<MetaAndCtxs>({ type: "metaAndAssetCtxs" }, signal);
+
 export function frameByKey(
   history: PortfolioHistory | undefined,
   key: PortfolioFrameKey,
