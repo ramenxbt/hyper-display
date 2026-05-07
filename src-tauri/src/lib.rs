@@ -2,11 +2,48 @@ use tauri::{
     image::Image,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent},
-    AppHandle, LogicalSize, Manager, PhysicalPosition, WebviewWindow,
+    webview::WebviewWindowBuilder,
+    AppHandle, LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindow,
 };
 
 const WINDOW_FULL: (f64, f64) = (1240.0, 820.0);
 const WINDOW_COMPACT: (f64, f64) = (380.0, 540.0);
+
+#[tauri::command]
+fn open_pin_window(
+    app: AppHandle,
+    coin: String,
+    wallet: String,
+) -> Result<(), String> {
+    let label_safe = format!(
+        "pin-{}-{}",
+        coin.to_lowercase(),
+        wallet.to_lowercase().trim_start_matches("0x").chars().take(8).collect::<String>(),
+    );
+
+    if let Some(existing) = app.get_webview_window(&label_safe) {
+        let _ = existing.show();
+        let _ = existing.set_focus();
+        return Ok(());
+    }
+
+    let url = format!("index.html?pin={}&wallet={}", coin, wallet);
+    let parsed = url.parse().map_err(|e: std::convert::Infallible| e.to_string())?;
+
+    WebviewWindowBuilder::new(&app, &label_safe, WebviewUrl::App(parsed))
+        .title(format!("{} · pinned", coin))
+        .inner_size(300.0, 180.0)
+        .min_inner_size(220.0, 130.0)
+        .resizable(true)
+        .decorations(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .background_color(tauri::webview::Color(11, 14, 17, 255))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
 
 #[tauri::command]
 fn set_menubar_mode(app: AppHandle, enabled: bool) -> Result<(), String> {
@@ -91,7 +128,7 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
-        .invoke_handler(tauri::generate_handler![set_menubar_mode])
+        .invoke_handler(tauri::generate_handler![set_menubar_mode, open_pin_window])
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
