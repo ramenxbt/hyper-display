@@ -19,6 +19,12 @@ import {
   sendNotification,
 } from "@tauri-apps/plugin-notification";
 import { sendWebhook } from "./lib/webhook";
+import {
+  buildBackup,
+  downloadBackup,
+  parseBackup,
+  pickBackupFile,
+} from "./lib/backup";
 import { AddressBar } from "./components/AddressBar";
 import { AccountSummary } from "./components/AccountSummary";
 import { EquityStrip } from "./components/EquityStrip";
@@ -28,9 +34,10 @@ import { FillsTable } from "./components/FillsTable";
 import { FundingTable } from "./components/FundingTable";
 import { WalletMenu } from "./components/WalletMenu";
 import { SettingsPanel } from "./components/SettingsPanel";
-import { useSnapshot } from "./hooks/useSnapshot";
+import { useAggregateSnapshot } from "./hooks/useAggregateSnapshot";
 import { useLiqAlerts } from "./hooks/useLiqAlerts";
 import { useMarkCandles } from "./hooks/useMarkCandles";
+import type { WalletTag } from "./lib/aggregate";
 import { isValidAddress } from "./lib/hl";
 import { shortAddress, timeAgo } from "./lib/format";
 import {
@@ -50,11 +57,14 @@ import {
 type Tab = "positions" | "orders" | "fills" | "funding";
 
 const STORAGE_KEY = "hyper-display.address";
+const ALL = "ALL";
 
 export default function App() {
-  const [address, setAddress] = useState<string>(() => {
+  const [selection, setSelection] = useState<string>(() => {
     return localStorage.getItem(STORAGE_KEY) ?? "";
   });
+  const aggregate = selection === ALL;
+  const address = aggregate ? "" : selection;
   const [wallets, setWallets] = useState<SavedWallet[]>(() => loadWallets());
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -64,8 +74,12 @@ export default function App() {
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    if (isValidAddress(address)) localStorage.setItem(STORAGE_KEY, address);
-  }, [address]);
+    if (selection === ALL || isValidAddress(selection)) {
+      localStorage.setItem(STORAGE_KEY, selection);
+    }
+  }, [selection]);
+
+  const setAddress = useCallback((next: string) => setSelection(next), []);
 
   useEffect(() => {
     saveWallets(wallets);
@@ -94,17 +108,22 @@ export default function App() {
     };
   }, []);
 
-  // cmd+1..9 / ctrl+1..9 to switch wallets
+  // cmd+0 → aggregate, cmd+1..9 → wallet, cmd+, → settings
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const meta = e.metaKey || e.ctrlKey;
       if (!meta) return;
+      if (e.key === "0" && wallets.length >= 2) {
+        e.preventDefault();
+        setSelection(ALL);
+        return;
+      }
       const num = parseInt(e.key, 10);
       if (Number.isFinite(num) && num >= 1 && num <= 9) {
         const target = wallets[num - 1];
         if (target) {
           e.preventDefault();
-          setAddress(target.address);
+          setSelection(target.address);
         }
       }
       if (meta && (e.key === "," || e.key === ".")) {
@@ -116,8 +135,21 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [wallets]);
 
-  const { data, error, loading, lastUpdated } = useSnapshot(
-    address,
+  const targetWallets = useMemo<WalletTag[]>(() => {
+    if (aggregate) {
+      return wallets.map((w) => ({ address: w.address, label: w.label }));
+    }
+    if (isValidAddress(selection)) {
+      const known = wallets.find(
+        (w) => w.address.toLowerCase() === selection.toLowerCase(),
+      );
+      return [{ address: selection, label: known?.label }];
+    }
+    return [];
+  }, [aggregate, wallets, selection]);
+
+  const { data, error, loading, lastUpdated } = useAggregateSnapshot(
+    targetWallets,
     settings.refreshSeconds * 1000,
   );
 
@@ -127,7 +159,7 @@ export default function App() {
   const funding = data?.funding ?? [];
   const portfolio = data?.portfolio;
   const positionCoins = useMemo(
-    () => positions.map((p) => p.position.coin),
+    () => Array.from(new Set(positions.map((p) => p.position.coin))),
     [positions],
   );
   const candles = useMarkCandles(positionCoins);
@@ -150,6 +182,13 @@ export default function App() {
       },
     );
   }, [settings.menuBarMode]);
+
+  // sync theme onto <html>
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove("theme-dark", "theme-light", "theme-auto");
+    root.classList.add(`theme-${settings.theme}`);
+  }, [settings.theme]);
 
   // sync auto-launch with the OS
   useEffect(() => {
@@ -201,6 +240,34 @@ export default function App() {
     });
   }, []);
 
+  const onExportBackup = useCallback(() => {
+    downloadBackup(buildBackup(wallets, settings));
+  }, [wallets, settings]);
+
+  const onImportBackup = useCallback(async () => {
+    const raw = await pickBackupFile();
+    if (!raw) return;
+    const result = parseBackup(raw);
+    if (!result.ok) {
+      window.alert(`Import failed: ${result.error}`);
+      return;
+    }
+    const incomingCount = result.data.wallets.length;
+    const ok = window.confirm(
+      `Replace local settings and merge ${incomingCount} wallet${incomingCount === 1 ? "" : "s"}?`,
+    );
+    if (!ok) return;
+    setSettings(result.data.settings);
+    setWallets((prev) => {
+      const known = new Set(prev.map((w) => w.address.toLowerCase()));
+      const merged = [...prev];
+      for (const w of result.data.wallets) {
+        if (!known.has(w.address.toLowerCase())) merged.push(w);
+      }
+      return merged;
+    });
+  }, []);
+
   const onTestWebhook = useCallback(async () => {
     try {
       await sendWebhook(settings.webhookUrl, settings.webhookFormat, {
@@ -213,7 +280,11 @@ export default function App() {
     }
   }, [settings.webhookUrl, settings.webhookFormat]);
 
-  const status = !isValidAddress(address)
+  const validSelection = aggregate
+    ? wallets.length > 0
+    : isValidAddress(selection);
+
+  const status = !validSelection
     ? "idle"
     : error
       ? "err"
@@ -221,8 +292,10 @@ export default function App() {
         ? "live"
         : "idle";
 
-  const statusLabel = !isValidAddress(address)
-    ? "Awaiting wallet"
+  const statusLabel = !validSelection
+    ? aggregate
+      ? "Add wallets to aggregate"
+      : "Awaiting wallet"
     : error
       ? "Connection issue"
       : lastUpdated
@@ -257,14 +330,20 @@ export default function App() {
         <WalletMenu
           wallets={wallets}
           active={address}
-          onPick={setAddress}
+          onPick={setSelection}
           onSave={onSaveCurrent}
           onRemove={onRemoveWallet}
           onRename={onRenameWallet}
+          onPickAll={() => setSelection(ALL)}
+          aggregateActive={aggregate}
         />
         <div className="topbar-status" data-tauri-drag-region>
-          {isValidAddress(address) && (
-            <span className="mono subtle">{shortAddress(address)}</span>
+          {aggregate ? (
+            <span className="mono subtle">{wallets.length} wallets</span>
+          ) : (
+            isValidAddress(address) && (
+              <span className="mono subtle">{shortAddress(address)}</span>
+            )
           )}
           <span className={`dot ${status}`} aria-hidden />
           <span>{statusLabel}</span>
@@ -299,8 +378,8 @@ export default function App() {
 
       <AccountSummary state={data?.state ?? null} />
 
-      {!isValidAddress(address) ? (
-        <NoAddress />
+      {!validSelection ? (
+        <NoAddress aggregate={aggregate} />
       ) : error && !data ? (
         <ErrorState message={error} />
       ) : (
@@ -346,12 +425,25 @@ export default function App() {
                   positions={positions}
                   mids={data?.mids ?? {}}
                   candles={candles}
+                  aggregate={aggregate}
                 />
               )}
-              {tab === "orders" && <OrdersTable orders={orders} />}
-              {tab === "fills" && <FillsTable fills={fills} address={address} />}
+              {tab === "orders" && (
+                <OrdersTable orders={orders} aggregate={aggregate} />
+              )}
+              {tab === "fills" && (
+                <FillsTable
+                  fills={fills}
+                  address={aggregate ? "all-wallets" : address}
+                  aggregate={aggregate}
+                />
+              )}
               {tab === "funding" && (
-                <FundingTable entries={funding} address={address} />
+                <FundingTable
+                  entries={funding}
+                  address={aggregate ? "all-wallets" : address}
+                  aggregate={aggregate}
+                />
               )}
             </div>
           </div>
@@ -367,6 +459,8 @@ export default function App() {
         onTestWebhook={onTestWebhook}
         notifPermission={notifPermission}
         onRequestPermission={onRequestPermission}
+        onExportBackup={onExportBackup}
+        onImportBackup={onImportBackup}
       />
     </div>
   );
@@ -400,7 +494,17 @@ function Tab({
   );
 }
 
-function NoAddress() {
+function NoAddress({ aggregate }: { aggregate: boolean }) {
+  if (aggregate) {
+    return (
+      <div className="empty" style={{ flex: 1 }}>
+        <div>No wallets saved yet.</div>
+        <div className="hint">
+          Save at least two wallets in the Wallets menu to use the aggregate view.
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="empty" style={{ flex: 1 }}>
       <div>Paste a Hyperliquid wallet address to begin.</div>
