@@ -2,8 +2,9 @@ import { useMemo, useState } from "react";
 import type { UserFill } from "../lib/hl";
 import { fmtPrice, fmtSignedUsd, fmtSize, fmtUsd } from "../lib/format";
 import { CoinFilter, coinCounts } from "./CoinFilter";
+import { csvFilename, downloadCsv, rowsToCsv } from "../lib/csv";
 
-type Props = { fills: UserFill[] };
+type Props = { fills: UserFill[]; address: string };
 
 const MAX_ROWS = 100;
 
@@ -19,7 +20,7 @@ function fmtFillTime(ts: number): string {
   });
 }
 
-export function FillsTable({ fills }: Props) {
+export function FillsTable({ fills, address }: Props) {
   const [coin, setCoin] = useState<string | null>(null);
   const counts = useMemo(() => coinCounts(fills), [fills]);
   const filtered = useMemo(
@@ -36,9 +37,36 @@ export function FillsTable({ fills }: Props) {
     );
   }
   const rows = [...filtered].sort((a, b) => b.time - a.time).slice(0, MAX_ROWS);
+
+  const onExport = () => {
+    const csv = rowsToCsv(filtered, [
+      { header: "time_iso", value: (f) => new Date(f.time).toISOString() },
+      { header: "time_ms", value: (f) => f.time },
+      { header: "coin", value: (f) => f.coin },
+      { header: "side", value: (f) => (f.side === "B" ? "buy" : "sell") },
+      { header: "direction", value: (f) => f.dir },
+      { header: "size", value: (f) => f.sz },
+      { header: "price", value: (f) => f.px },
+      { header: "notional_usd", value: (f) => parseFloat(f.sz) * parseFloat(f.px) },
+      { header: "fee", value: (f) => f.fee },
+      { header: "fee_token", value: (f) => f.feeToken },
+      { header: "closed_pnl", value: (f) => f.closedPnl },
+      { header: "crossed", value: (f) => (f.crossed ? "true" : "false") },
+      { header: "oid", value: (f) => f.oid },
+      { header: "tid", value: (f) => f.tid },
+      { header: "hash", value: (f) => f.hash },
+    ]);
+    downloadCsv(csvFilename("fills", address), csv);
+  };
+
   return (
     <>
-      <CoinFilter coins={counts} selected={coin} onSelect={setCoin} />
+      <div className="table-toolbar">
+        <CoinFilter coins={counts} selected={coin} onSelect={setCoin} />
+        <button type="button" className="settings-btn" onClick={onExport}>
+          Export CSV
+        </button>
+      </div>
       <table className="table">
         <thead>
           <tr>

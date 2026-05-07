@@ -2,8 +2,9 @@ import { useMemo, useState } from "react";
 import type { FundingEntry } from "../lib/hl";
 import { fmtSignedUsd, fmtSize } from "../lib/format";
 import { CoinFilter, coinCounts } from "./CoinFilter";
+import { csvFilename, downloadCsv, rowsToCsv } from "../lib/csv";
 
-type Props = { entries: FundingEntry[] };
+type Props = { entries: FundingEntry[]; address: string };
 
 const MAX_ROWS = 200;
 
@@ -23,7 +24,7 @@ function fmtRate(rate: string): string {
   return `${(n * 100).toFixed(4)}%`;
 }
 
-export function FundingTable({ entries }: Props) {
+export function FundingTable({ entries, address }: Props) {
   const [coin, setCoin] = useState<string | null>(null);
 
   const counts = useMemo(
@@ -54,6 +55,24 @@ export function FundingTable({ entries }: Props) {
 
   const rows = [...filtered].sort((a, b) => b.time - a.time).slice(0, MAX_ROWS);
 
+  const onExport = () => {
+    const csv = rowsToCsv(filtered, [
+      { header: "time_iso", value: (e) => new Date(e.time).toISOString() },
+      { header: "time_ms", value: (e) => e.time },
+      { header: "coin", value: (e) => e.delta.coin },
+      {
+        header: "side",
+        value: (e) => (parseFloat(e.delta.szi) > 0 ? "long" : "short"),
+      },
+      { header: "size", value: (e) => e.delta.szi },
+      { header: "funding_rate_1h", value: (e) => e.delta.fundingRate },
+      { header: "usdc", value: (e) => e.delta.usdc },
+      { header: "n_samples", value: (e) => e.delta.nSamples ?? "" },
+      { header: "hash", value: (e) => e.hash },
+    ]);
+    downloadCsv(csvFilename("funding", address), csv);
+  };
+
   return (
     <>
       <div className="funding-summary">
@@ -65,7 +84,12 @@ export function FundingTable({ entries }: Props) {
         </span>
         <span className="muted subtle">{filtered.length} payments</span>
       </div>
-      <CoinFilter coins={counts} selected={coin} onSelect={setCoin} />
+      <div className="table-toolbar">
+        <CoinFilter coins={counts} selected={coin} onSelect={setCoin} />
+        <button type="button" className="settings-btn" onClick={onExport}>
+          Export CSV
+        </button>
+      </div>
       <table className="table">
         <thead>
           <tr>
