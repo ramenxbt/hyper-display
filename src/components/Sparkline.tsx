@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 type Props = {
   points: [number, number][];
+  secondaryPoints?: [number, number][];
   width?: number;
   height?: number;
   positive?: boolean;
@@ -10,12 +11,21 @@ type Props = {
 
 export function Sparkline({
   points,
+  secondaryPoints,
   width = 320,
   height = 56,
   positive,
   showFill = true,
 }: Props) {
-  const path = useMemo(() => buildPath(points, width, height), [points, width, height]);
+  const path = useMemo(
+    () => buildPath(points, width, height),
+    [points, width, height],
+  );
+
+  const secondaryPath = useMemo(() => {
+    if (!secondaryPoints || secondaryPoints.length < 2) return null;
+    return buildPath(secondaryPoints, width, height);
+  }, [secondaryPoints, width, height]);
 
   if (!path) {
     return (
@@ -37,7 +47,12 @@ export function Sparkline({
     );
   }
 
-  const stroke = positive == null ? "var(--mint)" : positive ? "var(--long)" : "var(--short)";
+  const stroke =
+    positive == null
+      ? "var(--mint)"
+      : positive
+        ? "var(--long)"
+        : "var(--short)";
   const fillId = `spark-fill-${positive ?? "neutral"}`;
 
   return (
@@ -55,9 +70,30 @@ export function Sparkline({
         </linearGradient>
       </defs>
       {showFill && (
-        <path d={`${path.line} L ${width},${height} L 0,${height} Z`} fill={`url(#${fillId})`} />
+        <path
+          d={`${path.line} L ${width},${height} L 0,${height} Z`}
+          fill={`url(#${fillId})`}
+        />
       )}
-      <path d={path.line} fill="none" stroke={stroke} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      {secondaryPath && (
+        <path
+          d={secondaryPath.line}
+          fill="none"
+          stroke="rgba(255,255,255,0.18)"
+          strokeWidth="1"
+          strokeDasharray="2 3"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      )}
+      <path
+        d={path.line}
+        fill="none"
+        stroke={stroke}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
       {path.last && (
         <circle cx={path.last.x} cy={path.last.y} r="2.5" fill={stroke} />
       )}

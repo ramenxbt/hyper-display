@@ -9,7 +9,10 @@ import { fmtSignedPct, fmtSignedUsd } from "../lib/format";
 
 type Props = {
   portfolio: PortfolioHistory | undefined;
+  showSecondary?: boolean;
 };
+
+type Series = "equity" | "pnl";
 
 const FRAMES: { key: PortfolioFrameKey; label: string }[] = [
   { key: "day", label: "24H" },
@@ -18,8 +21,9 @@ const FRAMES: { key: PortfolioFrameKey; label: string }[] = [
   { key: "allTime", label: "All" },
 ];
 
-export function EquityStrip({ portfolio }: Props) {
+export function EquityStrip({ portfolio, showSecondary = true }: Props) {
   const [active, setActive] = useState<PortfolioFrameKey>("day");
+  const [series, setSeries] = useState<Series>("equity");
   const containerRef = useRef<HTMLDivElement>(null);
   const [chartW, setChartW] = useState(640);
 
@@ -37,39 +41,85 @@ export function EquityStrip({ portfolio }: Props) {
 
   const data = useMemo(() => {
     const frame = frameByKey(portfolio, active);
-    const history = frame?.accountValueHistory ?? [];
-    const points: [number, number][] = history.map(([t, v]) => [t, parseFloat(v)]);
-    if (points.length < 2)
-      return { points, startVal: null, endVal: null, deltaUsd: null, deltaPct: null };
-    const startVal = points[0][1];
-    const endVal = points[points.length - 1][1];
+    const equity: [number, number][] = (frame?.accountValueHistory ?? []).map(
+      ([t, v]) => [t, parseFloat(v)],
+    );
+    const pnl: [number, number][] = (frame?.pnlHistory ?? []).map(
+      ([t, v]) => [t, parseFloat(v)],
+    );
+
+    const primary = series === "equity" ? equity : pnl;
+    const secondary = series === "equity" ? pnl : equity;
+
+    if (primary.length < 2) {
+      return { primary, secondary, deltaUsd: null, deltaPct: null };
+    }
+
+    const startVal = primary[0][1];
+    const endVal = primary[primary.length - 1][1];
     const deltaUsd = endVal - startVal;
-    const deltaPct = startVal !== 0 ? deltaUsd / Math.abs(startVal) : 0;
-    return { points, startVal, endVal, deltaUsd, deltaPct };
-  }, [portfolio, active]);
+    const denom = series === "equity" ? Math.abs(startVal) : Math.abs(equity[0]?.[1] ?? 0);
+    const deltaPct = denom !== 0 ? deltaUsd / denom : 0;
+
+    return { primary, secondary, deltaUsd, deltaPct };
+  }, [portfolio, active, series]);
 
   const positive =
-    data.deltaUsd == null ? undefined : data.deltaUsd > 0 ? true : data.deltaUsd < 0 ? false : undefined;
+    data.deltaUsd == null
+      ? undefined
+      : data.deltaUsd > 0
+        ? true
+        : data.deltaUsd < 0
+          ? false
+          : undefined;
   const valueClass =
-    data.deltaUsd == null ? "" : data.deltaUsd > 0 ? "long" : data.deltaUsd < 0 ? "short" : "muted";
+    data.deltaUsd == null
+      ? ""
+      : data.deltaUsd > 0
+        ? "long"
+        : data.deltaUsd < 0
+          ? "short"
+          : "muted";
 
   return (
     <div className="equity">
       <div className="equity-meta">
-        <div className="equity-frames">
-          {FRAMES.map((f) => (
+        <div className="equity-row">
+          <div className="equity-frames">
+            {FRAMES.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                className={`pill ${active === f.key ? "active" : ""}`}
+                onClick={() => setActive(f.key)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <div className="equity-series">
             <button
-              key={f.key}
               type="button"
-              className={`pill ${active === f.key ? "active" : ""}`}
-              onClick={() => setActive(f.key)}
+              className={`pill ${series === "equity" ? "active" : ""}`}
+              onClick={() => setSeries("equity")}
+              title="Account value over time"
             >
-              {f.label}
+              Equity
             </button>
-          ))}
+            <button
+              type="button"
+              className={`pill ${series === "pnl" ? "active" : ""}`}
+              onClick={() => setSeries("pnl")}
+              title="Cumulative PnL over time"
+            >
+              PnL
+            </button>
+          </div>
         </div>
         <div className="equity-pnl">
-          <span className="k">PnL</span>
+          <span className="k">
+            {series === "equity" ? "Equity Δ" : "PnL Δ"}
+          </span>
           <span className={`v mono ${valueClass}`}>
             {data.deltaUsd == null ? "—" : fmtSignedUsd(data.deltaUsd)}
           </span>
@@ -79,7 +129,13 @@ export function EquityStrip({ portfolio }: Props) {
         </div>
       </div>
       <div className="equity-chart" ref={containerRef}>
-        <Sparkline points={data.points} width={chartW} height={64} positive={positive} />
+        <Sparkline
+          points={data.primary}
+          secondaryPoints={showSecondary ? data.secondary : undefined}
+          width={chartW}
+          height={64}
+          positive={positive}
+        />
       </div>
     </div>
   );
