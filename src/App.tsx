@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import "./App.css";
+import {
+  isPermissionGranted,
+  requestPermission,
+  sendNotification,
+} from "@tauri-apps/plugin-notification";
 import { AddressBar } from "./components/AddressBar";
 import { AccountSummary } from "./components/AccountSummary";
 import { EquityStrip } from "./components/EquityStrip";
@@ -8,7 +13,9 @@ import { OrdersTable } from "./components/OrdersTable";
 import { FillsTable } from "./components/FillsTable";
 import { FundingTable } from "./components/FundingTable";
 import { WalletMenu } from "./components/WalletMenu";
+import { SettingsPanel } from "./components/SettingsPanel";
 import { useSnapshot } from "./hooks/useSnapshot";
+import { useLiqAlerts } from "./hooks/useLiqAlerts";
 import { isValidAddress } from "./lib/hl";
 import { shortAddress, timeAgo } from "./lib/format";
 import {
@@ -19,17 +26,26 @@ import {
   saveWallets,
   type SavedWallet,
 } from "./lib/wallets";
+import {
+  DEFAULT_SETTINGS,
+  loadSettings,
+  saveSettings,
+  type Settings,
+} from "./lib/settings";
 
 type Tab = "positions" | "orders" | "fills" | "funding";
 
 const STORAGE_KEY = "hyper-display.address";
-const REFRESH_MS = 5000;
 
 export default function App() {
   const [address, setAddress] = useState<string>(() => {
     return localStorage.getItem(STORAGE_KEY) ?? "";
   });
   const [wallets, setWallets] = useState<SavedWallet[]>(() => loadWallets());
+  const [settings, setSettings] = useState<Settings>(() => loadSettings());
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [notifPermission, setNotifPermission] =
+    useState<"granted" | "denied" | "unknown">("unknown");
   const [tab, setTab] = useState<Tab>("positions");
   const [now, setNow] = useState(Date.now());
 
@@ -42,8 +58,26 @@ export default function App() {
   }, [wallets]);
 
   useEffect(() => {
+    saveSettings(settings);
+  }, [settings]);
+
+  useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
+  }, []);
+
+  // probe notification permission once
+  useEffect(() => {
+    let cancelled = false;
+    isPermissionGranted()
+      .then((g) => {
+        if (cancelled) return;
+        setNotifPermission(g ? "granted" : "unknown");
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // cmd+1..9 / ctrl+1..9 to switch wallets
@@ -59,18 +93,32 @@ export default function App() {
           setAddress(target.address);
         }
       }
+      if (meta && (e.key === "," || e.key === ".")) {
+        e.preventDefault();
+        setSettingsOpen((v) => !v);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [wallets]);
 
-  const { data, error, loading, lastUpdated } = useSnapshot(address, REFRESH_MS);
+  const { data, error, loading, lastUpdated } = useSnapshot(
+    address,
+    settings.refreshSeconds * 1000,
+  );
 
   const positions = data?.state.assetPositions ?? [];
   const orders = data?.orders ?? [];
   const fills = data?.fills ?? [];
   const funding = data?.funding ?? [];
   const portfolio = data?.portfolio;
+
+  useLiqAlerts({
+    enabled: settings.notifyLiqEnabled && notifPermission === "granted",
+    thresholdPct: settings.liqThresholdPct,
+    positions,
+    mids: data?.mids ?? {},
+  });
 
   const onSaveCurrent = useCallback(
     (label?: string) => {
@@ -87,6 +135,27 @@ export default function App() {
   const onRenameWallet = useCallback((addr: string, label: string) => {
     setWallets((prev) => renameWallet(prev, addr, label));
   }, []);
+
+  const onRequestPermission = useCallback(async () => {
+    try {
+      const result = await requestPermission();
+      setNotifPermission(result === "granted" ? "granted" : "denied");
+    } catch {
+      setNotifPermission("denied");
+    }
+  }, []);
+
+  const onTestNotification = useCallback(() => {
+    sendNotification({
+      title: "Hyper-Display test",
+      body: "Notifications are working. Liquidation alerts will fire automatically when a position gets close.",
+    });
+  }, []);
+
+  const onResetSettings = useCallback(() => {
+    setSettings(DEFAULT_SETTINGS);
+  }, []);
+  void onResetSettings;
 
   const status = !isValidAddress(address)
     ? "idle"
@@ -129,6 +198,15 @@ export default function App() {
           <span className={`dot ${status}`} aria-hidden />
           <span>{statusLabel}</span>
         </div>
+        <button
+          type="button"
+          className="settings-trigger"
+          onClick={() => setSettingsOpen(true)}
+          title="Settings (⌘,)"
+          aria-label="Settings"
+        >
+          <GearIcon />
+        </button>
       </div>
 
       {loading && !data && <div className="loading-line" />}
@@ -141,7 +219,10 @@ export default function App() {
         <ErrorState message={error} />
       ) : (
         <>
-          <EquityStrip portfolio={portfolio} />
+          <EquityStrip
+            portfolio={portfolio}
+            showSecondary={settings.showSecondarySeries}
+          />
           <div className="panels">
             <div className="tabs" role="tablist">
               <Tab
@@ -184,6 +265,16 @@ export default function App() {
           </div>
         </>
       )}
+
+      <SettingsPanel
+        open={settingsOpen}
+        settings={settings}
+        onChange={setSettings}
+        onClose={() => setSettingsOpen(false)}
+        onTestNotification={onTestNotification}
+        notifPermission={notifPermission}
+        onRequestPermission={onRequestPermission}
+      />
     </div>
   );
 }
@@ -234,5 +325,14 @@ function ErrorState({ message }: { message: string }) {
       <div className="error">Could not reach the Hyperliquid API.</div>
       <div className="hint mono">{message}</div>
     </div>
+  );
+}
+
+function GearIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
   );
 }
