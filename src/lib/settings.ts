@@ -13,6 +13,17 @@ export type Settings = {
   webhookFormat: WebhookFormat;
   autoLaunch: boolean;
   theme: Theme;
+  positionColumns: PositionColumnVisibility;
+};
+
+export type PositionColumnVisibility = {
+  entry: boolean;
+  mark: boolean;
+  spark24h: boolean;
+  liq: boolean;
+  margin: boolean;
+  roe: boolean;
+  lev: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -27,6 +38,15 @@ export const DEFAULT_SETTINGS: Settings = {
   webhookFormat: "discord",
   autoLaunch: false,
   theme: "dark",
+  positionColumns: {
+    entry: true,
+    mark: true,
+    spark24h: true,
+    liq: true,
+    margin: true,
+    roe: true,
+    lev: true,
+  },
 };
 
 const KEY = "hyper-display.settings";
@@ -36,7 +56,14 @@ export function loadSettings(): Settings {
     const raw = localStorage.getItem(KEY);
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<Settings>;
-    return { ...DEFAULT_SETTINGS, ...parsed };
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      positionColumns: {
+        ...DEFAULT_SETTINGS.positionColumns,
+        ...(parsed.positionColumns ?? {}),
+      },
+    };
   } catch {
     return DEFAULT_SETTINGS;
   }
