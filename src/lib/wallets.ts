@@ -3,6 +3,7 @@ import { isValidAddress } from "./hl";
 export type SavedWallet = {
   address: string;
   label?: string;
+  notes?: string;
 };
 
 const KEY = "hyper-display.wallets";
@@ -50,5 +51,18 @@ export function renameWallet(
   const target = address.toLowerCase();
   return wallets.map((w) =>
     w.address.toLowerCase() === target ? { ...w, label: label.trim() || undefined } : w,
+  );
+}
+
+export function setWalletNotes(
+  wallets: SavedWallet[],
+  address: string,
+  notes: string,
+): SavedWallet[] {
+  const target = address.toLowerCase();
+  return wallets.map((w) =>
+    w.address.toLowerCase() === target
+      ? { ...w, notes: notes.trim() || undefined }
+      : w,
   );
 }

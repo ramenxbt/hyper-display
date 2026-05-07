@@ -10,6 +10,7 @@ type Props = {
   onSave: (label?: string) => void;
   onRemove: (address: string) => void;
   onRename: (address: string, label: string) => void;
+  onSetNotes: (address: string, notes: string) => void;
   onPickAll?: () => void;
   aggregateActive?: boolean;
 };
@@ -21,6 +22,7 @@ export function WalletMenu({
   onSave,
   onRemove,
   onRename,
+  onSetNotes,
   onPickAll,
   aggregateActive,
 }: Props) {
@@ -91,22 +93,29 @@ export function WalletMenu({
                     onPick(w.address);
                     setOpen(false);
                   }}
-                  title="Switch to this wallet"
+                  title={w.notes || "Switch to this wallet"}
                 >
-                  <span className="wallet-label">
-                    {w.label || shortAddress(w.address)}
-                  </span>
-                  {w.label && (
-                    <span className="wallet-addr mono subtle">
-                      {shortAddress(w.address)}
+                  <span className="wallet-pick-text">
+                    <span className="wallet-pick-line">
+                      <span className="wallet-label">
+                        {w.label || shortAddress(w.address)}
+                      </span>
+                      {w.label && (
+                        <span className="wallet-addr mono subtle">
+                          {shortAddress(w.address)}
+                        </span>
+                      )}
                     </span>
-                  )}
+                    {w.notes && (
+                      <span className="wallet-notes">{w.notes}</span>
+                    )}
+                  </span>
                   {idx < 9 && <span className="wallet-key">⌘{idx + 1}</span>}
                 </button>
                 <button
                   type="button"
                   className="wallet-rename"
-                  title="Rename"
+                  title="Rename label"
                   onClick={() => {
                     const next = window.prompt(
                       "Label for this wallet",
@@ -116,6 +125,20 @@ export function WalletMenu({
                   }}
                 >
                   ✎
+                </button>
+                <button
+                  type="button"
+                  className="wallet-rename"
+                  title="Edit notes"
+                  onClick={() => {
+                    const next = window.prompt(
+                      `Notes for ${w.label || shortAddress(w.address)}`,
+                      w.notes ?? "",
+                    );
+                    if (next != null) onSetNotes(w.address, next);
+                  }}
+                >
+                  ✎n
                 </button>
                 <button
                   type="button"
