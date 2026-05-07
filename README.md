@@ -30,7 +30,11 @@ Use it for:
 - **Per-coin filter** on Fills and Funding tabs.
 - **Liquidation alerts** — opt-in native desktop notifications when mark price approaches your liquidation price (configurable threshold, throttled per coin).
 - **Menu-bar tray icon** — click to show or hide the main window; right-click for the show / hide / quit menu.
-- **Settings panel** (`⌘,` or click the gear) — refresh interval, equity-overlay toggle, alert thresholds, notification permission.
+- **Menu-bar mode** — collapses to a 380×540 always-on-top window, removes decorations, and hides the macOS dock icon for a true tray-only experience.
+- **Compact density** — tighter rows and smaller fonts, optional in full-window mode and automatic in menu-bar mode.
+- **Per-coin uPnL contribution bar** on the Positions tab so the dominant winners and losers stand out at a glance.
+- **Webhook mirror** for liquidation alerts (Discord, Slack, or generic JSON) with a built-in test button.
+- **Settings panel** (`⌘,` or click the gear) — window mode, refresh interval, equity-overlay toggle, alert thresholds, notification permission, webhook config.
 - **5-second default refresh** (configurable 2 to 30 seconds) with a live-status dot in the title bar.
 - **Address persistence** — your last-used wallet is remembered locally.
 - **HL-faithful styling** — dark navy surface, mint accent, tabular numerics, long/short coloring.
@@ -99,12 +103,12 @@ See the [Hyperliquid Info API docs](https://hyperliquid.gitbook.io/hyperliquid-d
 
 ## Roadmap
 
-Planned for v0.4:
+Planned for v0.5:
 
-- Compact tray-anchored window that follows the menu-bar icon.
-- Auto-hide from dock when running tray-only on macOS.
-- Per-coin PnL contribution sparkline on the Positions tab.
-- Webhook output (Discord, Telegram) mirroring the local notifications.
+- Tray-anchored window positioning so the menu-bar window appears under the icon.
+- Built-in CSV export for the Fills and Funding tables.
+- Per-coin candle sparkline inline on each Positions row (24H mark price).
+- Optional auto-launch on login (macOS / Windows).
 
 ## Privacy
 
