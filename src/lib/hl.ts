@@ -139,6 +139,34 @@ export const fetchUserFunding = (
   signal?: AbortSignal,
 ) => post<FundingEntry[]>({ type: "userFunding", user, startTime }, signal);
 
+export type Candle = {
+  t: number;
+  T: number;
+  s: string;
+  i: string;
+  o: string;
+  c: string;
+  h: string;
+  l: string;
+  v: string;
+  n: number;
+};
+
+export const fetchCandleSnapshot = (
+  coin: string,
+  interval: string,
+  startTime: number,
+  endTime: number,
+  signal?: AbortSignal,
+) =>
+  post<Candle[]>(
+    {
+      type: "candleSnapshot",
+      req: { coin, interval, startTime, endTime },
+    },
+    signal,
+  );
+
 export function frameByKey(
   history: PortfolioHistory | undefined,
   key: PortfolioFrameKey,

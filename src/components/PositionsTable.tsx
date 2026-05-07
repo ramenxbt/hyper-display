@@ -7,13 +7,16 @@ import {
   fmtUsd,
   fmtSignedPct,
 } from "../lib/format";
+import { Sparkline } from "./Sparkline";
+import type { CandleSeries } from "../hooks/useMarkCandles";
 
 type Props = {
   positions: AssetPosition[];
   mids: AllMids;
+  candles: CandleSeries;
 };
 
-export function PositionsTable({ positions, mids }: Props) {
+export function PositionsTable({ positions, mids, candles }: Props) {
   const maxAbsPnl = useMemo(() => {
     let m = 0;
     for (const ap of positions) {
@@ -36,6 +39,7 @@ export function PositionsTable({ positions, mids }: Props) {
           <th>Position Value</th>
           <th>Entry</th>
           <th>Mark</th>
+          <th>24H</th>
           <th>Liq</th>
           <th>Margin</th>
           <th>Unrealized PnL</th>
@@ -67,6 +71,9 @@ export function PositionsTable({ positions, mids }: Props) {
               <td className="mono">{fmtUsd(p.positionValue)}</td>
               <td className="mono">{p.entryPx ? fmtPrice(p.entryPx) : "—"}</td>
               <td className="mono">{mark != null ? fmtPrice(mark) : "—"}</td>
+              <td className="position-spark">
+                <PositionSpark points={candles[p.coin]} />
+              </td>
               <td className="mono muted">
                 {p.liquidationPx ? fmtPrice(p.liquidationPx) : "—"}
               </td>
@@ -84,6 +91,26 @@ export function PositionsTable({ positions, mids }: Props) {
         })}
       </tbody>
     </table>
+  );
+}
+
+function PositionSpark({ points }: { points: [number, number][] | undefined }) {
+  if (!points || points.length < 2) {
+    return <span className="muted subtle">—</span>;
+  }
+  const start = points[0][1];
+  const end = points[points.length - 1][1];
+  const positive = end > start ? true : end < start ? false : undefined;
+  return (
+    <span className="position-spark-inner">
+      <Sparkline
+        points={points}
+        width={84}
+        height={22}
+        positive={positive}
+        showFill={false}
+      />
+    </span>
   );
 }
 
