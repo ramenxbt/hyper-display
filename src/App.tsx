@@ -1,0 +1,167 @@
+import { useEffect, useState } from "react";
+import "./App.css";
+import { AddressBar } from "./components/AddressBar";
+import { AccountSummary } from "./components/AccountSummary";
+import { PositionsTable } from "./components/PositionsTable";
+import { OrdersTable } from "./components/OrdersTable";
+import { FillsTable } from "./components/FillsTable";
+import { useSnapshot } from "./hooks/useSnapshot";
+import { isValidAddress } from "./lib/hl";
+import { shortAddress, timeAgo } from "./lib/format";
+
+type Tab = "positions" | "orders" | "fills";
+
+const STORAGE_KEY = "hyper-display.address";
+const REFRESH_MS = 5000;
+
+export default function App() {
+  const [address, setAddress] = useState<string>(() => {
+    return localStorage.getItem(STORAGE_KEY) ?? "";
+  });
+  const [tab, setTab] = useState<Tab>("positions");
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (isValidAddress(address)) localStorage.setItem(STORAGE_KEY, address);
+  }, [address]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const { data, error, loading, lastUpdated } = useSnapshot(address, REFRESH_MS);
+
+  const positions = data?.state.assetPositions ?? [];
+  const orders = data?.orders ?? [];
+  const fills = data?.fills ?? [];
+
+  const status = !isValidAddress(address)
+    ? "idle"
+    : error
+      ? "err"
+      : data
+        ? "live"
+        : "idle";
+
+  const statusLabel = !isValidAddress(address)
+    ? "Awaiting wallet"
+    : error
+      ? "Connection issue"
+      : lastUpdated
+        ? `Updated ${timeAgo(lastUpdated)}`
+        : "Loading…";
+
+  void now;
+
+  return (
+    <div className="app">
+      <div className="topbar">
+        <div className="brand">
+          <span className="brand-mark" aria-hidden />
+          <span className="brand-name">Hyper-Display</span>
+        </div>
+        <AddressBar value={address} onChange={setAddress} />
+        <div className="topbar-status">
+          {isValidAddress(address) && (
+            <span className="mono subtle">{shortAddress(address)}</span>
+          )}
+          <span className={`dot ${status}`} aria-hidden />
+          <span>{statusLabel}</span>
+        </div>
+      </div>
+
+      {loading && !data && <div className="loading-line" />}
+
+      <AccountSummary state={data?.state ?? null} />
+
+      {!isValidAddress(address) ? (
+        <NoAddress />
+      ) : error && !data ? (
+        <ErrorState message={error} />
+      ) : (
+        <div className="panels">
+          <div className="tabs" role="tablist">
+            <Tab
+              id="positions"
+              label="Positions"
+              count={positions.length}
+              active={tab === "positions"}
+              onClick={() => setTab("positions")}
+            />
+            <Tab
+              id="orders"
+              label="Open Orders"
+              count={orders.length}
+              active={tab === "orders"}
+              onClick={() => setTab("orders")}
+            />
+            <Tab
+              id="fills"
+              label="Recent Fills"
+              count={fills.length}
+              active={tab === "fills"}
+              onClick={() => setTab("fills")}
+            />
+          </div>
+          <div className="panel-body">
+            {tab === "positions" && (
+              <PositionsTable positions={positions} mids={data?.mids ?? {}} />
+            )}
+            {tab === "orders" && <OrdersTable orders={orders} />}
+            {tab === "fills" && <FillsTable fills={fills} />}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Tab({
+  id,
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  id: string;
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      id={`tab-${id}`}
+      className={`tab ${active ? "active" : ""}`}
+      onClick={onClick}
+    >
+      <span>{label}</span>
+      <span className="count">{count}</span>
+    </button>
+  );
+}
+
+function NoAddress() {
+  return (
+    <div className="empty" style={{ flex: 1 }}>
+      <div>Paste a Hyperliquid wallet address to begin.</div>
+      <div className="hint">
+        Hyper-Display reads from the public Hyperliquid info API. It is read-only,
+        runs on your machine, and never asks for keys or signatures.
+      </div>
+    </div>
+  );
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <div className="empty" style={{ flex: 1 }}>
+      <div className="error">Could not reach the Hyperliquid API.</div>
+      <div className="hint mono">{message}</div>
+    </div>
+  );
+}
