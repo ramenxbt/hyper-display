@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import "./App.css";
+import { invoke } from "@tauri-apps/api/core";
 import {
   isPermissionGranted,
   requestPermission,
   sendNotification,
 } from "@tauri-apps/plugin-notification";
+import { sendWebhook } from "./lib/webhook";
 import { AddressBar } from "./components/AddressBar";
 import { AccountSummary } from "./components/AccountSummary";
 import { EquityStrip } from "./components/EquityStrip";
@@ -27,7 +29,6 @@ import {
   type SavedWallet,
 } from "./lib/wallets";
 import {
-  DEFAULT_SETTINGS,
   loadSettings,
   saveSettings,
   type Settings,
@@ -114,11 +115,23 @@ export default function App() {
   const portfolio = data?.portfolio;
 
   useLiqAlerts({
-    enabled: settings.notifyLiqEnabled && notifPermission === "granted",
+    notifyEnabled: settings.notifyLiqEnabled && notifPermission === "granted",
     thresholdPct: settings.liqThresholdPct,
     positions,
     mids: data?.mids ?? {},
+    webhookEnabled: settings.webhookEnabled,
+    webhookUrl: settings.webhookUrl,
+    webhookFormat: settings.webhookFormat,
   });
+
+  // sync menu-bar mode to the Rust window whenever it toggles
+  useEffect(() => {
+    invoke("set_menubar_mode", { enabled: settings.menuBarMode }).catch(
+      (err) => {
+        console.warn("set_menubar_mode failed", err);
+      },
+    );
+  }, [settings.menuBarMode]);
 
   const onSaveCurrent = useCallback(
     (label?: string) => {
@@ -152,10 +165,17 @@ export default function App() {
     });
   }, []);
 
-  const onResetSettings = useCallback(() => {
-    setSettings(DEFAULT_SETTINGS);
-  }, []);
-  void onResetSettings;
+  const onTestWebhook = useCallback(async () => {
+    try {
+      await sendWebhook(settings.webhookUrl, settings.webhookFormat, {
+        title: "Hyper-Display test",
+        body: "Webhook mirror is wired up. Real liquidation alerts will land here whenever a position gets close.",
+        severity: "info",
+      });
+    } catch (err) {
+      console.warn("test webhook failed", err);
+    }
+  }, [settings.webhookUrl, settings.webhookFormat]);
 
   const status = !isValidAddress(address)
     ? "idle"
@@ -175,8 +195,10 @@ export default function App() {
 
   void now;
 
+  const compact = settings.compactMode || settings.menuBarMode;
+
   return (
-    <div className="app">
+    <div className={`app ${compact ? "compact" : ""}`}>
       <div className="topbar">
         <div className="brand">
           <span className="brand-mark" aria-hidden />
@@ -272,6 +294,7 @@ export default function App() {
         onChange={setSettings}
         onClose={() => setSettingsOpen(false)}
         onTestNotification={onTestNotification}
+        onTestWebhook={onTestWebhook}
         notifPermission={notifPermission}
         onRequestPermission={onRequestPermission}
       />
