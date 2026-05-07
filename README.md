@@ -21,9 +21,12 @@ Use it for:
 ## Features
 
 - **Account summary** — account value, unrealized PnL, notional, margin used, withdrawable, open position count.
+- **Equity sparkline** — 24H / 7D / 30D / All-time account-value chart with PnL pill in USD and percent.
 - **Positions table** — coin, side, size, entry, mark, liquidation price, margin, unrealized PnL, ROE, leverage.
 - **Open orders** — type, side, size/filled, limit price, notional, reduce-only flag, time placed.
 - **Recent fills** — last 100 trades with direction, size, price, fee, and closed PnL.
+- **Funding payments** — 30-day net funding plus a per-payment ledger (coin, side, size, hourly rate, USDC).
+- **Multi-wallet presets** — save unlimited wallets with custom labels, switch with `⌘1..9` / `Ctrl+1..9`.
 - **5-second refresh** with a live-status dot in the title bar.
 - **Address persistence** — your last-used wallet is remembered locally.
 - **HL-faithful styling** — dark navy surface, mint accent, tabular numerics, long/short coloring.
@@ -85,17 +88,19 @@ All data comes from a single public endpoint:
 | `frontendOpenOrders`   | resting limit orders and triggers           |
 | `userFills`            | recent fills, including closed PnL          |
 | `allMids`              | live mid prices for every traded asset      |
+| `portfolio`            | account-value and PnL history per timeframe |
+| `userFunding`          | hourly funding payments over the lookback   |
 
 See the [Hyperliquid Info API docs](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint).
 
 ## Roadmap
 
-Planned for v0.2:
+Planned for v0.3:
 
-- 24h PnL / equity sparkline in the summary strip.
-- Per-asset funding payment history tab.
-- Multi-wallet support (saved presets, hotkey-switch).
-- Native menu-bar mode on macOS.
+- Native menu-bar mode on macOS (compact tray window).
+- Per-coin filter on the fills and funding tabs.
+- Cumulative PnL overlay on the equity sparkline.
+- Optional desktop notifications on liquidation-price proximity.
 
 ## Privacy
 
