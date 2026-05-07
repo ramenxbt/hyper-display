@@ -1,6 +1,16 @@
 export type WebhookFormat = "discord" | "slack" | "generic";
 export type Theme = "dark" | "light" | "auto";
 
+export type AlertRuleType = "upnl-below" | "upnl-above";
+
+export type AlertRule = {
+  id: string;
+  type: AlertRuleType;
+  threshold: number; // USD
+  enabled: boolean;
+  label?: string;
+};
+
 export type Settings = {
   notifyLiqEnabled: boolean;
   liqThresholdPct: number; // distance from mark to liq, as percent
@@ -14,6 +24,7 @@ export type Settings = {
   autoLaunch: boolean;
   theme: Theme;
   positionColumns: PositionColumnVisibility;
+  alertRules: AlertRule[];
 };
 
 export type PositionColumnVisibility = {
@@ -47,6 +58,7 @@ export const DEFAULT_SETTINGS: Settings = {
     roe: true,
     lev: true,
   },
+  alertRules: [],
 };
 
 const KEY = "hyper-display.settings";
@@ -63,6 +75,7 @@ export function loadSettings(): Settings {
         ...DEFAULT_SETTINGS.positionColumns,
         ...(parsed.positionColumns ?? {}),
       },
+      alertRules: Array.isArray(parsed.alertRules) ? parsed.alertRules : [],
     };
   } catch {
     return DEFAULT_SETTINGS;
