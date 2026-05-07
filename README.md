@@ -27,7 +27,11 @@ Use it for:
 - **Recent fills** — last 100 trades with direction, size, price, fee, and closed PnL.
 - **Funding payments** — 30-day net funding plus a per-payment ledger (coin, side, size, hourly rate, USDC).
 - **Multi-wallet presets** — save unlimited wallets with custom labels, switch with `⌘1..9` / `Ctrl+1..9`.
-- **5-second refresh** with a live-status dot in the title bar.
+- **Per-coin filter** on Fills and Funding tabs.
+- **Liquidation alerts** — opt-in native desktop notifications when mark price approaches your liquidation price (configurable threshold, throttled per coin).
+- **Menu-bar tray icon** — click to show or hide the main window; right-click for the show / hide / quit menu.
+- **Settings panel** (`⌘,` or click the gear) — refresh interval, equity-overlay toggle, alert thresholds, notification permission.
+- **5-second default refresh** (configurable 2 to 30 seconds) with a live-status dot in the title bar.
 - **Address persistence** — your last-used wallet is remembered locally.
 - **HL-faithful styling** — dark navy surface, mint accent, tabular numerics, long/short coloring.
 
@@ -95,12 +99,12 @@ See the [Hyperliquid Info API docs](https://hyperliquid.gitbook.io/hyperliquid-d
 
 ## Roadmap
 
-Planned for v0.3:
+Planned for v0.4:
 
-- Native menu-bar mode on macOS (compact tray window).
-- Per-coin filter on the fills and funding tabs.
-- Cumulative PnL overlay on the equity sparkline.
-- Optional desktop notifications on liquidation-price proximity.
+- Compact tray-anchored window that follows the menu-bar icon.
+- Auto-hide from dock when running tray-only on macOS.
+- Per-coin PnL contribution sparkline on the Positions tab.
+- Webhook output (Discord, Telegram) mirroring the local notifications.
 
 ## Privacy
 
