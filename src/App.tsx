@@ -198,13 +198,13 @@ export default function App() {
   const compact = settings.compactMode || settings.menuBarMode;
 
   return (
-    <div className={`app ${compact ? "compact" : ""}`}>
-      <div className="topbar">
-        <div className="brand">
+    <div className={`app ${compact ? "compact" : ""} ${settings.menuBarMode ? "menubar" : ""}`}>
+      <div className="topbar" data-tauri-drag-region>
+        <div className="brand" data-tauri-drag-region>
           <span className="brand-mark" aria-hidden />
           <span className="brand-name">Hyper-Display</span>
         </div>
-        <AddressBar value={address} onChange={setAddress} />
+        <AddressBar value={address} onChange={setAddress} compact={compact} />
         <WalletMenu
           wallets={wallets}
           active={address}
@@ -213,22 +213,37 @@ export default function App() {
           onRemove={onRemoveWallet}
           onRename={onRenameWallet}
         />
-        <div className="topbar-status">
+        <div className="topbar-status" data-tauri-drag-region>
           {isValidAddress(address) && (
             <span className="mono subtle">{shortAddress(address)}</span>
           )}
           <span className={`dot ${status}`} aria-hidden />
           <span>{statusLabel}</span>
         </div>
-        <button
-          type="button"
-          className="settings-trigger"
-          onClick={() => setSettingsOpen(true)}
-          title="Settings (⌘,)"
-          aria-label="Settings"
-        >
-          <GearIcon />
-        </button>
+        <div className="topbar-actions" data-tauri-drag-region="false">
+          {settings.menuBarMode && (
+            <button
+              type="button"
+              className="settings-trigger"
+              onClick={() =>
+                setSettings((s) => ({ ...s, menuBarMode: false }))
+              }
+              title="Exit menu-bar mode"
+              aria-label="Exit menu-bar mode"
+            >
+              <ExpandIcon />
+            </button>
+          )}
+          <button
+            type="button"
+            className="settings-trigger"
+            onClick={() => setSettingsOpen(true)}
+            title="Settings (⌘,)"
+            aria-label="Settings"
+          >
+            <GearIcon />
+          </button>
+        </div>
       </div>
 
       {loading && !data && <div className="loading-line" />}
@@ -348,6 +363,27 @@ function ErrorState({ message }: { message: string }) {
       <div className="error">Could not reach the Hyperliquid API.</div>
       <div className="hint mono">{message}</div>
     </div>
+  );
+}
+
+function ExpandIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polyline points="15 3 21 3 21 9" />
+      <polyline points="9 21 3 21 3 15" />
+      <line x1="21" y1="3" x2="14" y2="10" />
+      <line x1="3" y1="21" x2="10" y2="14" />
+    </svg>
   );
 }
 

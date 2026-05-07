@@ -5,17 +5,36 @@
   background: var(--bg);
 }
 
+/* TOPBAR ACTIONS GROUP */
+.topbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
 /* COMPACT DENSITY (auto in menu-bar mode) */
 .app.compact .topbar {
   height: 40px;
-  padding: 0 10px;
-  gap: 10px;
+  padding: 0 8px;
+  gap: 8px;
 }
 .app.compact .brand-name {
   display: none;
 }
 .app.compact .topbar-status {
   display: none;
+}
+.app.compact .address-bar {
+  flex: 1 1 0;
+  min-width: 60px;
+}
+.app.compact .wallet-trigger span:first-child {
+  display: none;
+}
+.app.compact .wallet-trigger {
+  padding: 0 8px;
 }
 .app.compact .summary {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -102,7 +121,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   max-width: 520px;
   height: 32px;
   padding: 0 10px;
@@ -110,6 +130,9 @@
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   transition: border-color 120ms;
+}
+.address-bar input {
+  min-width: 0;
 }
 .address-bar:focus-within {
   border-color: rgba(151, 252, 228, 0.35);
@@ -649,8 +672,9 @@
 
 /* SETTINGS */
 .settings-trigger {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -662,6 +686,17 @@
   color: var(--text);
   background: var(--bg-elev);
   border-color: var(--border);
+}
+/* hint that the empty topbar background is draggable in menubar mode */
+.app.menubar .topbar {
+  cursor: grab;
+}
+.app.menubar .topbar:active {
+  cursor: grabbing;
+}
+.app.menubar .topbar input,
+.app.menubar .topbar button {
+  cursor: auto;
 }
 
 .settings-overlay {

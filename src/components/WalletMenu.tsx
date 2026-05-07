@@ -31,7 +31,7 @@ export function WalletMenu({ wallets, active, onPick, onSave, onRemove, onRename
   const canSave = isValidAddress(active) && !isSaved;
 
   return (
-    <div className="wallet-menu" ref={ref}>
+    <div className="wallet-menu" ref={ref} data-tauri-drag-region="false">
       <button
         type="button"
         className="wallet-trigger"
