@@ -1,8 +1,8 @@
 use tauri::{
     image::Image,
     menu::{Menu, MenuItem},
-    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, LogicalSize, Manager,
+    tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent},
+    AppHandle, LogicalSize, Manager, PhysicalPosition, WebviewWindow,
 };
 
 const WINDOW_FULL: (f64, f64) = (1240.0, 820.0);
@@ -37,13 +37,60 @@ fn set_menubar_mode(app: AppHandle, enabled: bool) -> Result<(), String> {
         let _ = app.set_activation_policy(policy);
     }
 
+    if enabled {
+        if let Some(tray) = app.tray_by_id("main") {
+            anchor_window_to_tray(&tray, &window);
+        }
+    }
+
     Ok(())
+}
+
+fn anchor_window_to_tray(tray: &TrayIcon, window: &WebviewWindow) {
+    let tray_rect = match tray.rect() {
+        Ok(Some(r)) => r,
+        _ => return,
+    };
+    let win_size = match window.outer_size() {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+    let scale = window.scale_factor().unwrap_or(1.0);
+    let tray_pos = tray_rect.position.to_physical::<f64>(scale);
+    let tray_size = tray_rect.size.to_physical::<f64>(scale);
+
+    let icon_center_x = tray_pos.x + tray_size.width / 2.0;
+    let mut x = icon_center_x - (win_size.width as f64 / 2.0);
+    let mut y = tray_pos.y + tray_size.height + 6.0;
+
+    if let Ok(Some(monitor)) = window.current_monitor() {
+        let m_pos = monitor.position();
+        let m_size = monitor.size();
+        let max_x = m_pos.x as f64 + m_size.width as f64 - win_size.width as f64 - 4.0;
+        let min_x = m_pos.x as f64 + 4.0;
+        if x > max_x {
+            x = max_x;
+        }
+        if x < min_x {
+            x = min_x;
+        }
+        let max_y = m_pos.y as f64 + m_size.height as f64 - win_size.height as f64 - 4.0;
+        if y > max_y {
+            y = max_y;
+        }
+    }
+
+    let _ = window.set_position(PhysicalPosition::new(x, y));
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .invoke_handler(tauri::generate_handler![set_menubar_mode])
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -96,6 +143,10 @@ pub fn run() {
                             if visible {
                                 let _ = w.hide();
                             } else {
+                                // If we're in menubar mode (no decorations), anchor under the icon
+                                if !w.is_decorated().unwrap_or(true) {
+                                    anchor_window_to_tray(tray, &w);
+                                }
                                 let _ = w.show();
                                 let _ = w.set_focus();
                             }
