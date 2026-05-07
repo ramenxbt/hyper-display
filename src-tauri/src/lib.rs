@@ -14,6 +14,10 @@ fn open_pin_window(
     app: AppHandle,
     coin: String,
     wallet: String,
+    x: Option<f64>,
+    y: Option<f64>,
+    w: Option<f64>,
+    h: Option<f64>,
 ) -> Result<(), String> {
     let label_safe = format!(
         "pin-{}-{}",
@@ -30,17 +34,21 @@ fn open_pin_window(
     let url = format!("index.html?pin={}&wallet={}", coin, wallet);
     let parsed = url.parse().map_err(|e: std::convert::Infallible| e.to_string())?;
 
-    WebviewWindowBuilder::new(&app, &label_safe, WebviewUrl::App(parsed))
+    let mut builder = WebviewWindowBuilder::new(&app, &label_safe, WebviewUrl::App(parsed))
         .title(format!("{} · pinned", coin))
-        .inner_size(300.0, 180.0)
+        .inner_size(w.unwrap_or(300.0), h.unwrap_or(180.0))
         .min_inner_size(220.0, 130.0)
         .resizable(true)
         .decorations(false)
         .always_on_top(true)
         .skip_taskbar(true)
-        .background_color(tauri::webview::Color(11, 14, 17, 255))
-        .build()
-        .map_err(|e| e.to_string())?;
+        .background_color(tauri::webview::Color(11, 14, 17, 255));
+
+    if let (Some(px), Some(py)) = (x, y) {
+        builder = builder.position(px, py);
+    }
+
+    builder.build().map_err(|e| e.to_string())?;
 
     Ok(())
 }

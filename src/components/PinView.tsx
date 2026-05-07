@@ -1,6 +1,7 @@
 import { useEffect, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { fetchSnapshot, isValidAddress, type AssetPosition } from "../lib/hl";
+import { loadPinLayout, removePin, savePinLayout, upsertPin } from "../lib/pinLayout";
 import {
   fmtPrice,
   fmtSignedPct,
@@ -21,6 +22,66 @@ export function PinView({ coin, wallet }: Props) {
   const [mark, setMark] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [candles, setCandles] = useState<[number, number][] | null>(null);
+
+  // record this pin in the saved layout the moment it opens
+  useEffect(() => {
+    savePinLayout(upsertPin(loadPinLayout(), { coin, wallet }));
+
+    let unlistenMoved: (() => void) | undefined;
+    let unlistenResized: (() => void) | undefined;
+    let resizeTimer: number | null = null;
+
+    (async () => {
+      const win = getCurrentWindow();
+
+      const persist = async () => {
+        try {
+          const pos = await win.outerPosition();
+          const sz = await win.outerSize();
+          const factor = await win.scaleFactor();
+          const entry = {
+            coin,
+            wallet,
+            x: pos.x / factor,
+            y: pos.y / factor,
+            w: sz.width / factor,
+            h: sz.height / factor,
+          };
+          savePinLayout(upsertPin(loadPinLayout(), entry));
+        } catch {
+          // ignore
+        }
+      };
+
+      const debouncedPersist = () => {
+        if (resizeTimer) window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(persist, 200);
+      };
+
+      try {
+        unlistenMoved = await win.onMoved(debouncedPersist);
+      } catch {}
+      try {
+        unlistenResized = await win.onResized(debouncedPersist);
+      } catch {}
+
+      // initial position capture
+      persist();
+    })();
+
+    const onClose = () => {
+      // when the user explicitly closes, drop from layout
+      savePinLayout(removePin(loadPinLayout(), coin, wallet));
+    };
+    window.addEventListener("beforeunload", onClose);
+
+    return () => {
+      unlistenMoved?.();
+      unlistenResized?.();
+      window.removeEventListener("beforeunload", onClose);
+      if (resizeTimer) window.clearTimeout(resizeTimer);
+    };
+  }, [coin, wallet]);
 
   useEffect(() => {
     if (!isValidAddress(wallet)) {
@@ -87,6 +148,7 @@ export function PinView({ coin, wallet }: Props) {
   };
 
   const close = () => {
+    savePinLayout(removePin(loadPinLayout(), coin, wallet));
     getCurrentWindow().close().catch(() => {});
   };
 
