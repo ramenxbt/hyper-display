@@ -371,6 +371,7 @@ function RulesEditor({
         const types: { v: AlertRuleType; label: string }[] = [
           { v: "upnl-below", label: "uPnL below" },
           { v: "upnl-above", label: "uPnL above" },
+          { v: "funding-abs-above", label: "Funding |rate| above %" },
         ];
         return (
           <div key={r.id} className="rule-row">

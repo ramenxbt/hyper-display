@@ -2,9 +2,13 @@ import { useMemo, useState } from "react";
 import type { FundingRow } from "../hooks/useFundingRates";
 import { fmtUsd } from "../lib/format";
 
-type Props = { rows: FundingRow[] };
+type Props = {
+  rows: FundingRow[];
+  watchlist: Set<string>;
+  onToggleWatch: (coin: string) => void;
+};
 
-type SortKey = "rate" | "abs" | "coin" | "vol";
+type SortKey = "rate" | "abs" | "coin" | "vol" | "watch";
 
 const HEAT_MAX = 0.0005; // 0.05% per hour pegged to full saturation
 
@@ -36,7 +40,7 @@ function fmtAnnual(rate: number): string {
   return `${annual.toFixed(2)}% APR`;
 }
 
-export function FundingHeatmap({ rows }: Props) {
+export function FundingHeatmap({ rows, watchlist, onToggleWatch }: Props) {
   const [sort, setSort] = useState<SortKey>("abs");
   const [query, setQuery] = useState("");
 
@@ -57,8 +61,15 @@ export function FundingHeatmap({ rows }: Props) {
         return arr.sort((a, b) => a.coin.localeCompare(b.coin));
       case "vol":
         return arr.sort((a, b) => b.dayNtlVlm - a.dayNtlVlm);
+      case "watch":
+        return arr.sort((a, b) => {
+          const aw = watchlist.has(a.coin.toUpperCase()) ? 0 : 1;
+          const bw = watchlist.has(b.coin.toUpperCase()) ? 0 : 1;
+          if (aw !== bw) return aw - bw;
+          return Math.abs(b.funding) - Math.abs(a.funding);
+        });
     }
-  }, [rows, sort, query]);
+  }, [rows, sort, query, watchlist]);
 
   if (!rows.length) {
     return (
@@ -111,6 +122,13 @@ export function FundingHeatmap({ rows }: Props) {
           >
             Coin
           </button>
+          <button
+            type="button"
+            className={`pill ${sort === "watch" ? "active" : ""}`}
+            onClick={() => setSort("watch")}
+          >
+            Watching
+          </button>
         </div>
         <div className="rates-summary">
           <span className="muted subtle">
@@ -121,13 +139,22 @@ export function FundingHeatmap({ rows }: Props) {
       <div className="rates-grid">
         {sorted.map((r) => {
           const { bg, fg } = rateColor(r.funding);
+          const watched = watchlist.has(r.coin.toUpperCase());
           return (
             <div
               key={r.coin}
-              className="rate-tile"
+              className={`rate-tile ${watched ? "watched" : ""}`}
               style={{ background: bg, color: fg }}
               title={`${r.coin} · 1H ${fmtRate(r.funding)} · ${fmtAnnual(r.funding)} · 24H volume ${fmtUsd(r.dayNtlVlm)}`}
             >
+              <button
+                type="button"
+                className="rate-star"
+                onClick={() => onToggleWatch(r.coin)}
+                title={watched ? "Remove from watchlist" : "Add to watchlist"}
+              >
+                {watched ? "★" : "☆"}
+              </button>
               <span className="rate-coin">{r.coin}</span>
               <span className="rate-value mono">{fmtRate(r.funding)}</span>
               <span className="rate-apr mono">{fmtAnnual(r.funding)}</span>

@@ -1,7 +1,10 @@
 export type WebhookFormat = "discord" | "slack" | "generic";
 export type Theme = "dark" | "light" | "auto";
 
-export type AlertRuleType = "upnl-below" | "upnl-above";
+export type AlertRuleType =
+  | "upnl-below"
+  | "upnl-above"
+  | "funding-abs-above";
 
 export type AlertRule = {
   id: string;

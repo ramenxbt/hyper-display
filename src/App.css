@@ -1274,6 +1274,101 @@
   justify-content: center;
 }
 
+/* ORDER BOOK */
+.book-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  font-size: 11.5px;
+}
+.book-toolbar .k {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+.book {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  height: 100%;
+  overflow: hidden;
+}
+.book-side {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  min-height: 0;
+}
+.book-head {
+  display: grid;
+  grid-template-columns: 0.4fr 1fr 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  border-bottom: 1px solid var(--border);
+}
+.book-asks .book-head,
+.book-asks .book-row {
+  direction: rtl;
+}
+.book-asks .book-cell {
+  direction: ltr;
+}
+.book-body {
+  flex: 1;
+  overflow-y: auto;
+}
+.book-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 0.4fr 1fr 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 4px 14px;
+  font-size: 11.5px;
+}
+.book-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.book-bar {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  border-radius: 2px;
+  z-index: 0;
+}
+.book-bids .book-bar {
+  right: 0;
+  background: rgba(31, 166, 125, 0.10);
+}
+.book-asks .book-bar {
+  left: 0;
+  background: rgba(237, 112, 136, 0.10);
+}
+.book-cell {
+  position: relative;
+  z-index: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+}
+.book-bids .book-cell {
+  text-align: right;
+}
+.book-asks .book-cell {
+  text-align: left;
+}
+
 /* RATES TAB (funding heatmap) */
 .rates-toolbar {
   display: flex;
@@ -1314,6 +1409,7 @@
   padding: 12px 16px 24px;
 }
 .rate-tile {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -1324,6 +1420,30 @@
 }
 .rate-tile:hover {
   transform: translateY(-1px);
+}
+.rate-tile.watched {
+  border-color: var(--mint);
+  box-shadow: 0 0 0 1px rgba(151, 252, 228, 0.18) inset;
+}
+.rate-star {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  color: var(--text-subtle);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.rate-tile.watched .rate-star {
+  color: var(--mint);
+}
+.rate-star:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--mint);
 }
 .rate-coin {
   font-size: 12px;
