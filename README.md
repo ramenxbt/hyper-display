@@ -27,6 +27,9 @@ Use it for:
 - **Recent fills** — last 100 trades with direction, size, price, fee, and closed PnL.
 - **Funding payments** — 30-day net funding plus a per-payment ledger (coin, side, size, hourly rate, USDC).
 - **Multi-wallet presets** — save unlimited wallets with custom labels, switch with `⌘1..9` / `Ctrl+1..9`.
+- **Multi-account aggregate view** — one virtual "All wallets" entry sums account value, positions, orders, fills, and funding across every saved wallet (`⌘0` shortcut). Tables tag each row with the originating wallet.
+- **Light / Dark / Auto theme** — Auto follows your system colour scheme.
+- **Backup** — one-click JSON export and import of saved wallets and settings; drop it in iCloud, Drive, or Dropbox.
 - **Per-coin filter** on Fills and Funding tabs.
 - **Liquidation alerts** — opt-in native desktop notifications when mark price approaches your liquidation price (configurable threshold, throttled per coin).
 - **Menu-bar tray icon** — click to show or hide the main window; right-click for the show / hide / quit menu.
@@ -108,12 +111,12 @@ See the [Hyperliquid Info API docs](https://hyperliquid.gitbook.io/hyperliquid-d
 
 ## Roadmap
 
-Planned for v0.6:
+Planned for v0.7:
 
-- Multi-account aggregate view (sum positions across saved wallets).
-- Per-position quick-close hotkey (with explicit confirmation gate, opt-in).
-- Light-theme toggle.
-- Optional iCloud / Drive backup for saved wallets and settings.
+- Per-coin notional and position-share donuts on Positions.
+- Sortable table headers across all four tabs.
+- Configurable column visibility per table.
+- Optional command-palette search (`⌘K`) over wallets, coins, and tabs.
 
 ## Privacy
 
