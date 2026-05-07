@@ -1,4 +1,5 @@
 export type WebhookFormat = "discord" | "slack" | "generic";
+export type Theme = "dark" | "light" | "auto";
 
 export type Settings = {
   notifyLiqEnabled: boolean;
@@ -11,6 +12,7 @@ export type Settings = {
   webhookUrl: string;
   webhookFormat: WebhookFormat;
   autoLaunch: boolean;
+  theme: Theme;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -24,6 +26,7 @@ export const DEFAULT_SETTINGS: Settings = {
   webhookUrl: "",
   webhookFormat: "discord",
   autoLaunch: false,
+  theme: "dark",
 };
 
 const KEY = "hyper-display.settings";

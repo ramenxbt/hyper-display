@@ -1,4 +1,5 @@
-:root {
+:root,
+:root.theme-dark {
   --bg: #0b0e11;
   --bg-elev: #11161c;
   --bg-elev-2: #161c24;
@@ -20,6 +21,62 @@
   --short-bg: rgba(237, 112, 136, 0.10);
   --warn: #f5a524;
 
+  color-scheme: dark;
+}
+
+:root.theme-light {
+  --bg: #f7f8fa;
+  --bg-elev: #ffffff;
+  --bg-elev-2: #eef0f3;
+  --surface: #ffffff;
+  --surface-hover: #f1f3f6;
+
+  --text: #1a1f29;
+  --text-muted: #5b6573;
+  --text-subtle: #8b95a1;
+
+  --border: rgba(0, 0, 0, 0.07);
+  --border-strong: rgba(0, 0, 0, 0.13);
+
+  --mint: #2db395;
+  --mint-dim: #1a8d72;
+  --long: #169a6e;
+  --long-bg: rgba(22, 154, 110, 0.10);
+  --short: #c93a52;
+  --short-bg: rgba(201, 58, 82, 0.10);
+  --warn: #d97706;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root.theme-auto {
+    --bg: #f7f8fa;
+    --bg-elev: #ffffff;
+    --bg-elev-2: #eef0f3;
+    --surface: #ffffff;
+    --surface-hover: #f1f3f6;
+
+    --text: #1a1f29;
+    --text-muted: #5b6573;
+    --text-subtle: #8b95a1;
+
+    --border: rgba(0, 0, 0, 0.07);
+    --border-strong: rgba(0, 0, 0, 0.13);
+
+    --mint: #2db395;
+    --mint-dim: #1a8d72;
+    --long: #169a6e;
+    --long-bg: rgba(22, 154, 110, 0.10);
+    --short: #c93a52;
+    --short-bg: rgba(201, 58, 82, 0.10);
+    --warn: #d97706;
+
+    color-scheme: light;
+  }
+}
+
+:root {
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
@@ -32,7 +89,6 @@
   font-family: var(--font-sans);
   font-feature-settings: "ss01", "cv11", "tnum";
   font-variant-numeric: tabular-nums;
-  color-scheme: dark;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
