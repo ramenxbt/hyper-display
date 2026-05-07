@@ -42,6 +42,15 @@ import { useLiqAlerts } from "./hooks/useLiqAlerts";
 import { useUpnlAlerts } from "./hooks/useUpnlAlerts";
 import { useMarkCandles } from "./hooks/useMarkCandles";
 import { useFundingRates } from "./hooks/useFundingRates";
+import { useFundingAlerts } from "./hooks/useFundingAlerts";
+import { OrderBook } from "./components/OrderBook";
+import { SpotTable } from "./components/SpotTable";
+import {
+  loadWatchlist,
+  saveWatchlist,
+  toggleCoinInWatchlist,
+} from "./lib/watchlist";
+import { loadPinLayout } from "./lib/pinLayout";
 import type { WalletTag } from "./lib/aggregate";
 import { isValidAddress } from "./lib/hl";
 import { shortAddress, timeAgo } from "./lib/format";
@@ -60,7 +69,14 @@ import {
   type Settings,
 } from "./lib/settings";
 
-type Tab = "positions" | "orders" | "fills" | "funding" | "rates";
+type Tab =
+  | "positions"
+  | "orders"
+  | "fills"
+  | "funding"
+  | "rates"
+  | "book"
+  | "spot";
 
 const STORAGE_KEY = "hyper-display.address";
 const ALL = "ALL";
@@ -78,6 +94,38 @@ export default function App() {
     useState<"granted" | "denied" | "unknown">("unknown");
   const [tab, setTab] = useState<Tab>("positions");
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [watchlist, setWatchlist] = useState<Set<string>>(() => loadWatchlist());
+
+  useEffect(() => {
+    saveWatchlist(watchlist);
+  }, [watchlist]);
+
+  const onToggleWatch = useCallback((coin: string) => {
+    setWatchlist((prev) => toggleCoinInWatchlist(prev, coin));
+  }, []);
+
+  // auto-restore pinned windows once at boot
+  useEffect(() => {
+    const layout = loadPinLayout();
+    if (layout.length === 0) return;
+    (async () => {
+      for (const p of layout) {
+        try {
+          await invoke("open_pin_window", {
+            coin: p.coin,
+            wallet: p.wallet,
+            x: p.x,
+            y: p.y,
+            w: p.w,
+            h: p.h,
+          });
+        } catch (err) {
+          console.warn("auto-restore pin failed", err);
+        }
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -189,6 +237,16 @@ export default function App() {
   useUpnlAlerts({
     rules: settings.alertRules,
     positions,
+    notifyEnabled: notifPermission === "granted",
+    webhookEnabled: settings.webhookEnabled,
+    webhookUrl: settings.webhookUrl,
+    webhookFormat: settings.webhookFormat,
+  });
+
+  useFundingAlerts({
+    rules: settings.alertRules,
+    rows: fundingRates.rows,
+    watchlist,
     notifyEnabled: notifPermission === "granted",
     webhookEnabled: settings.webhookEnabled,
     webhookUrl: settings.webhookUrl,
@@ -545,6 +603,20 @@ export default function App() {
                 active={tab === "rates"}
                 onClick={() => setTab("rates")}
               />
+              <Tab
+                id="book"
+                label="Book"
+                count={positionCoins.length}
+                active={tab === "book"}
+                onClick={() => setTab("book")}
+              />
+              <Tab
+                id="spot"
+                label="Spot"
+                count={targetWallets.length}
+                active={tab === "spot"}
+                onClick={() => setTab("spot")}
+              />
             </div>
             <div className="panel-body">
               {tab === "positions" && (
@@ -580,7 +652,22 @@ export default function App() {
                 />
               )}
               {tab === "rates" && (
-                <FundingHeatmap rows={fundingRates.rows} />
+                <FundingHeatmap
+                  rows={fundingRates.rows}
+                  watchlist={watchlist}
+                  onToggleWatch={onToggleWatch}
+                />
+              )}
+              {tab === "book" && (
+                <OrderBook
+                  coins={positionCoins.length > 0 ? positionCoins : fundingRates.rows.slice(0, 30).map((r) => r.coin)}
+                  defaultCoin={positionCoins[0]}
+                />
+              )}
+              {tab === "spot" && (
+                <SpotTable
+                  addresses={targetWallets.map((w) => w.address)}
+                />
               )}
             </div>
           </div>
