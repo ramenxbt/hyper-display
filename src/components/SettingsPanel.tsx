@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { Settings, WebhookFormat } from "../lib/settings";
+import type { Settings, Theme, WebhookFormat } from "../lib/settings";
 import { isLikelyValidWebhookUrl } from "../lib/webhook";
 
 type Props = {
@@ -11,12 +11,20 @@ type Props = {
   onTestWebhook: () => void;
   notifPermission: "granted" | "denied" | "unknown";
   onRequestPermission: () => void;
+  onExportBackup: () => void;
+  onImportBackup: () => void;
 };
 
 const FORMATS: { v: WebhookFormat; label: string }[] = [
   { v: "discord", label: "Discord" },
   { v: "slack", label: "Slack" },
   { v: "generic", label: "Generic JSON" },
+];
+
+const THEMES: { v: Theme; label: string }[] = [
+  { v: "dark", label: "Dark" },
+  { v: "light", label: "Light" },
+  { v: "auto", label: "Auto" },
 ];
 
 export function SettingsPanel({
@@ -28,6 +36,8 @@ export function SettingsPanel({
   onTestWebhook,
   notifPermission,
   onRequestPermission,
+  onExportBackup,
+  onImportBackup,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -62,6 +72,23 @@ export function SettingsPanel({
             ✕
           </button>
         </div>
+
+        <Section title="Appearance">
+          <Field label="Theme">
+            <div className="format-pills">
+              {THEMES.map((t) => (
+                <button
+                  key={t.v}
+                  type="button"
+                  className={`pill ${settings.theme === t.v ? "active" : ""}`}
+                  onClick={() => set("theme", t.v)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </Field>
+        </Section>
 
         <Section title="Window">
           <Toggle
@@ -163,6 +190,20 @@ export function SettingsPanel({
               disabled={notifPermission !== "granted"}
             >
               Send test
+            </button>
+          </div>
+        </Section>
+
+        <Section title="Backup">
+          <p className="settings-hint">
+            Exports your saved wallets and settings (no keys) as a single JSON file. Drop it in iCloud, Drive, or Dropbox to sync across machines.
+          </p>
+          <div className="settings-row">
+            <button type="button" className="settings-btn" onClick={onExportBackup}>
+              Export backup
+            </button>
+            <button type="button" className="settings-btn" onClick={onImportBackup}>
+              Import backup
             </button>
           </div>
         </Section>
