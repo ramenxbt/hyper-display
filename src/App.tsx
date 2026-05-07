@@ -1,7 +1,18 @@
-import { useCallback, useEffect, useState, type MouseEvent as ReactMouseEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import "./App.css";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import {
+  enable as enableAutostart,
+  disable as disableAutostart,
+  isEnabled as isAutostartEnabled,
+} from "@tauri-apps/plugin-autostart";
 import {
   isPermissionGranted,
   requestPermission,
@@ -19,6 +30,7 @@ import { WalletMenu } from "./components/WalletMenu";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { useSnapshot } from "./hooks/useSnapshot";
 import { useLiqAlerts } from "./hooks/useLiqAlerts";
+import { useMarkCandles } from "./hooks/useMarkCandles";
 import { isValidAddress } from "./lib/hl";
 import { shortAddress, timeAgo } from "./lib/format";
 import {
@@ -114,6 +126,11 @@ export default function App() {
   const fills = data?.fills ?? [];
   const funding = data?.funding ?? [];
   const portfolio = data?.portfolio;
+  const positionCoins = useMemo(
+    () => positions.map((p) => p.position.coin),
+    [positions],
+  );
+  const candles = useMarkCandles(positionCoins);
 
   useLiqAlerts({
     notifyEnabled: settings.notifyLiqEnabled && notifPermission === "granted",
@@ -133,6 +150,24 @@ export default function App() {
       },
     );
   }, [settings.menuBarMode]);
+
+  // sync auto-launch with the OS
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const current = await isAutostartEnabled();
+        if (cancelled) return;
+        if (settings.autoLaunch && !current) await enableAutostart();
+        else if (!settings.autoLaunch && current) await disableAutostart();
+      } catch (err) {
+        console.warn("autostart sync failed", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [settings.autoLaunch]);
 
   const onSaveCurrent = useCallback(
     (label?: string) => {
@@ -307,11 +342,17 @@ export default function App() {
             </div>
             <div className="panel-body">
               {tab === "positions" && (
-                <PositionsTable positions={positions} mids={data?.mids ?? {}} />
+                <PositionsTable
+                  positions={positions}
+                  mids={data?.mids ?? {}}
+                  candles={candles}
+                />
               )}
               {tab === "orders" && <OrdersTable orders={orders} />}
-              {tab === "fills" && <FillsTable fills={fills} />}
-              {tab === "funding" && <FundingTable entries={funding} />}
+              {tab === "fills" && <FillsTable fills={fills} address={address} />}
+              {tab === "funding" && (
+                <FundingTable entries={funding} address={address} />
+              )}
             </div>
           </div>
         </>
