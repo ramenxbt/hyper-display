@@ -34,7 +34,11 @@ Use it for:
 - **Compact density** — tighter rows and smaller fonts, optional in full-window mode and automatic in menu-bar mode.
 - **Per-coin uPnL contribution bar** on the Positions tab so the dominant winners and losers stand out at a glance.
 - **Webhook mirror** for liquidation alerts (Discord, Slack, or generic JSON) with a built-in test button.
-- **Settings panel** (`⌘,` or click the gear) — window mode, refresh interval, equity-overlay toggle, alert thresholds, notification permission, webhook config.
+- **Per-coin 24H sparkline** inline on each Positions row (1H mark-price candles, refreshed every minute).
+- **CSV export** for Fills and Funding tabs, named with the wallet short-id and timestamp.
+- **Tray-anchored window** in menu-bar mode — clicking the tray icon pops the window directly under it, clamped to the screen.
+- **Auto-launch on login** (macOS / Windows / Linux) via `tauri-plugin-autostart`.
+- **Settings panel** (`⌘,` or click the gear) — window mode, auto-launch, refresh interval, equity-overlay toggle, alert thresholds, notification permission, webhook config.
 - **5-second default refresh** (configurable 2 to 30 seconds) with a live-status dot in the title bar.
 - **Address persistence** — your last-used wallet is remembered locally.
 - **HL-faithful styling** — dark navy surface, mint accent, tabular numerics, long/short coloring.
@@ -98,17 +102,18 @@ All data comes from a single public endpoint:
 | `allMids`              | live mid prices for every traded asset      |
 | `portfolio`            | account-value and PnL history per timeframe |
 | `userFunding`          | hourly funding payments over the lookback   |
+| `candleSnapshot`       | OHLCV candles per coin for inline sparklines |
 
 See the [Hyperliquid Info API docs](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint).
 
 ## Roadmap
 
-Planned for v0.5:
+Planned for v0.6:
 
-- Tray-anchored window positioning so the menu-bar window appears under the icon.
-- Built-in CSV export for the Fills and Funding tables.
-- Per-coin candle sparkline inline on each Positions row (24H mark price).
-- Optional auto-launch on login (macOS / Windows).
+- Multi-account aggregate view (sum positions across saved wallets).
+- Per-position quick-close hotkey (with explicit confirmation gate, opt-in).
+- Light-theme toggle.
+- Optional iCloud / Drive backup for saved wallets and settings.
 
 ## Privacy
 
