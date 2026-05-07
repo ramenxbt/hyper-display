@@ -1,7 +1,8 @@
-import type { OpenOrder } from "../lib/hl";
 import { fmtPrice, fmtSize, fmtUsd } from "../lib/format";
+import type { TaggedOpenOrder } from "../lib/aggregate";
+import { WalletChip } from "./WalletChip";
 
-type Props = { orders: OpenOrder[] };
+type Props = { orders: TaggedOpenOrder[]; aggregate?: boolean };
 
 function fmtOrderTime(ts: number): string {
   const d = new Date(ts);
@@ -14,7 +15,7 @@ function fmtOrderTime(ts: number): string {
   });
 }
 
-export function OrdersTable({ orders }: Props) {
+export function OrdersTable({ orders, aggregate }: Props) {
   if (!orders.length) {
     return (
       <div className="empty">
@@ -28,6 +29,7 @@ export function OrdersTable({ orders }: Props) {
     <table className="table">
       <thead>
         <tr>
+          {aggregate && <th>Wallet</th>}
           <th>Coin</th>
           <th>Type</th>
           <th>Side</th>
@@ -48,7 +50,12 @@ export function OrdersTable({ orders }: Props) {
           const px = parseFloat(o.limitPx);
           const notional = px * sz;
           return (
-            <tr key={o.oid}>
+            <tr key={`${o.wallet?.address ?? "self"}:${o.oid}`}>
+              {aggregate && (
+                <td>
+                  <WalletChip wallet={o.wallet} />
+                </td>
+              )}
               <td>
                 <span className="coin">{o.coin}</span>
               </td>

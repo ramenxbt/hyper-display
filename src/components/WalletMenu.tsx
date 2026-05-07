@@ -10,9 +10,20 @@ type Props = {
   onSave: (label?: string) => void;
   onRemove: (address: string) => void;
   onRename: (address: string, label: string) => void;
+  onPickAll?: () => void;
+  aggregateActive?: boolean;
 };
 
-export function WalletMenu({ wallets, active, onPick, onSave, onRemove, onRename }: Props) {
+export function WalletMenu({
+  wallets,
+  active,
+  onPick,
+  onSave,
+  onRemove,
+  onRename,
+  onPickAll,
+  aggregateActive,
+}: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const [labelDraft, setLabelDraft] = useState("");
@@ -46,6 +57,25 @@ export function WalletMenu({ wallets, active, onPick, onSave, onRemove, onRename
         <div className="wallet-pop" role="menu">
           {wallets.length === 0 && (
             <div className="wallet-empty">No saved wallets yet.</div>
+          )}
+          {wallets.length >= 2 && onPickAll && (
+            <div className={`wallet-row ${aggregateActive ? "active" : ""}`}>
+              <button
+                type="button"
+                className="wallet-pick"
+                onClick={() => {
+                  onPickAll();
+                  setOpen(false);
+                }}
+                title="Aggregate every saved wallet"
+              >
+                <span className="wallet-label">All wallets</span>
+                <span className="wallet-addr mono subtle">
+                  {wallets.length} accounts
+                </span>
+                <span className="wallet-key">⌘0</span>
+              </button>
+            </div>
           )}
           {wallets.map((w, idx) => {
             const isActive = w.address.toLowerCase() === active.toLowerCase();

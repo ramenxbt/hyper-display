@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { AssetPosition, AllMids } from "../lib/hl";
+import type { AllMids } from "../lib/hl";
 import {
   fmtPrice,
   fmtSignedUsd,
@@ -9,14 +9,17 @@ import {
 } from "../lib/format";
 import { Sparkline } from "./Sparkline";
 import type { CandleSeries } from "../hooks/useMarkCandles";
+import type { TaggedAssetPosition } from "../lib/aggregate";
+import { WalletChip } from "./WalletChip";
 
 type Props = {
-  positions: AssetPosition[];
+  positions: TaggedAssetPosition[];
   mids: AllMids;
   candles: CandleSeries;
+  aggregate?: boolean;
 };
 
-export function PositionsTable({ positions, mids, candles }: Props) {
+export function PositionsTable({ positions, mids, candles, aggregate }: Props) {
   const maxAbsPnl = useMemo(() => {
     let m = 0;
     for (const ap of positions) {
@@ -33,6 +36,7 @@ export function PositionsTable({ positions, mids, candles }: Props) {
     <table className="table">
       <thead>
         <tr>
+          {aggregate && <th>Wallet</th>}
           <th>Coin</th>
           <th>Side</th>
           <th>Size</th>
@@ -48,7 +52,8 @@ export function PositionsTable({ positions, mids, candles }: Props) {
         </tr>
       </thead>
       <tbody>
-        {positions.map(({ position: p }) => {
+        {positions.map((ap) => {
+          const p = ap.position;
           const sz = parseFloat(p.szi);
           const isLong = sz > 0;
           const upnl = parseFloat(p.unrealizedPnl);
@@ -58,7 +63,12 @@ export function PositionsTable({ positions, mids, candles }: Props) {
           const roeClass = roe > 0 ? "long" : roe < 0 ? "short" : "";
           const pnlShare = maxAbsPnl > 0 ? Math.abs(upnl) / maxAbsPnl : 0;
           return (
-            <tr key={p.coin}>
+            <tr key={`${ap.wallet?.address ?? "self"}:${p.coin}`}>
+              {aggregate && (
+                <td>
+                  <WalletChip wallet={ap.wallet} />
+                </td>
+              )}
               <td>
                 <span className="coin">{p.coin}</span>
               </td>

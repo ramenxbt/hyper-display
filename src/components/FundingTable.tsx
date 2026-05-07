@@ -1,10 +1,15 @@
 import { useMemo, useState } from "react";
-import type { FundingEntry } from "../lib/hl";
 import { fmtSignedUsd, fmtSize } from "../lib/format";
 import { CoinFilter, coinCounts } from "./CoinFilter";
 import { csvFilename, downloadCsv, rowsToCsv } from "../lib/csv";
+import type { TaggedFundingEntry } from "../lib/aggregate";
+import { WalletChip } from "./WalletChip";
 
-type Props = { entries: FundingEntry[]; address: string };
+type Props = {
+  entries: TaggedFundingEntry[];
+  address: string;
+  aggregate?: boolean;
+};
 
 const MAX_ROWS = 200;
 
@@ -24,7 +29,7 @@ function fmtRate(rate: string): string {
   return `${(n * 100).toFixed(4)}%`;
 }
 
-export function FundingTable({ entries, address }: Props) {
+export function FundingTable({ entries, address, aggregate }: Props) {
   const [coin, setCoin] = useState<string | null>(null);
 
   const counts = useMemo(
@@ -94,6 +99,7 @@ export function FundingTable({ entries, address }: Props) {
         <thead>
           <tr>
             <th>Time</th>
+            {aggregate && <th>Wallet</th>}
             <th>Coin</th>
             <th>Side</th>
             <th>Position Size</th>
@@ -108,8 +114,15 @@ export function FundingTable({ entries, address }: Props) {
             const usdc = parseFloat(e.delta.usdc);
             const cls = usdc > 0 ? "long" : usdc < 0 ? "short" : "muted";
             return (
-              <tr key={`${e.time}-${e.delta.coin}-${e.hash}`}>
+              <tr
+                key={`${e.wallet?.address ?? "self"}:${e.time}-${e.delta.coin}-${e.hash}`}
+              >
                 <td className="mono muted">{fmtFundingTime(e.time)}</td>
+                {aggregate && (
+                  <td>
+                    <WalletChip wallet={e.wallet} />
+                  </td>
+                )}
                 <td>
                   <span className="coin">{e.delta.coin}</span>
                 </td>

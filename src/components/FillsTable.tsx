@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import type { UserFill } from "../lib/hl";
 import { fmtPrice, fmtSignedUsd, fmtSize, fmtUsd } from "../lib/format";
 import { CoinFilter, coinCounts } from "./CoinFilter";
 import { csvFilename, downloadCsv, rowsToCsv } from "../lib/csv";
+import type { TaggedUserFill } from "../lib/aggregate";
+import { WalletChip } from "./WalletChip";
 
-type Props = { fills: UserFill[]; address: string };
+type Props = { fills: TaggedUserFill[]; address: string; aggregate?: boolean };
 
 const MAX_ROWS = 100;
 
@@ -20,7 +21,7 @@ function fmtFillTime(ts: number): string {
   });
 }
 
-export function FillsTable({ fills, address }: Props) {
+export function FillsTable({ fills, address, aggregate }: Props) {
   const [coin, setCoin] = useState<string | null>(null);
   const counts = useMemo(() => coinCounts(fills), [fills]);
   const filtered = useMemo(
@@ -71,6 +72,7 @@ export function FillsTable({ fills, address }: Props) {
         <thead>
           <tr>
             <th>Time</th>
+            {aggregate && <th>Wallet</th>}
             <th>Coin</th>
             <th>Side</th>
             <th>Direction</th>
@@ -90,8 +92,13 @@ export function FillsTable({ fills, address }: Props) {
             const pnl = parseFloat(f.closedPnl);
             const pnlClass = pnl > 0 ? "long" : pnl < 0 ? "short" : "muted";
             return (
-              <tr key={`${f.tid}-${f.hash}`}>
+              <tr key={`${f.wallet?.address ?? "self"}:${f.tid}-${f.hash}`}>
                 <td className="mono muted">{fmtFillTime(f.time)}</td>
+                {aggregate && (
+                  <td>
+                    <WalletChip wallet={f.wallet} />
+                  </td>
+                )}
                 <td>
                   <span className="coin">{f.coin}</span>
                 </td>
